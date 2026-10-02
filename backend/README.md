@@ -1,6 +1,6 @@
  # Backend
 
-This project uses [uv](https://docs.astral.sh/uv/) to manage its Python environment and dependencies. The `backend` script is defined in `pyproject.toml`.
+This project uses [uv](https://docs.astral.sh/uv/) to manage its Python environment and dependencies. The `dev` script is defined in `pyproject.toml` and starts the backend in development mode.
 
 ## Install uv with Scoop
 
@@ -24,12 +24,12 @@ The required Python version is specified in the `.python-version` file. `uv` rea
 uv python install
 ```
 
-## Run the backend
+## Run the backend in development
 
 From this directory, run the project script with:
 
 ```powershell
-uv run backend
+uv run dev
 ```
 
-`uv run` creates or updates the project environment and installs the dependencies declared by the project as needed before running the `backend` script.
+`uv run` creates or updates the project environment and installs the dependencies declared by the project as needed before running the `dev` script. The development server runs at `http://127.0.0.1:8000` and reloads when code changes.
