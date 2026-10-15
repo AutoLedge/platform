@@ -9,6 +9,7 @@ export class ApiError extends Error {
 }
 
 export async function apiFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
+  if (!supabase) throw new ApiError(401);
   const { data } = await supabase.auth.getSession();
   if (!data.session) throw new ApiError(401);
 

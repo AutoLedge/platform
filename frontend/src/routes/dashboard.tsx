@@ -1,42 +1,20 @@
-import { Form, useLoaderData, type LoaderFunctionArgs } from "react-router";
-import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { sessionContext } from "@/lib/auth";
-import { apiFetch } from "@/lib/api";
-import { queryClient } from "@/lib/query-client";
-
-type DashboardSummary = {
-  cash_balance: string;
-  unmatched_transaction_count: number;
-};
-
-// Defined once and shared by the loader and the component.
-const dashboardSummaryQuery = queryOptions({
-  queryKey: ["dashboard", "summary"],
-  queryFn: ({ signal }) => apiFetch<DashboardSummary>("/dashboard/summary", { signal }),
-});
+import { useLoaderData, useSubmit, type LoaderFunctionArgs } from 'react-router'
+import App from '@/App'
+import { sessionContext } from '@/lib/auth'
 
 export async function dashboardLoader({ context }: LoaderFunctionArgs) {
-  // Start (or reuse) the fetch before the page renders. Instant if cached.
-  await queryClient.ensureQueryData(dashboardSummaryQuery);
-  return { email: context.get(sessionContext).user.email };
+  const user = context.get(sessionContext).user
+  const metadata = user.user_metadata
+  const firstName = typeof metadata.first_name === 'string' ? metadata.first_name : ''
+  const lastName = typeof metadata.last_name === 'string' ? metadata.last_name : ''
+  const metadataName = typeof metadata.full_name === 'string' ? metadata.full_name : ''
+  const email = user.email ?? ''
+  return { user: { name: `${firstName} ${lastName}`.trim() || metadataName || email || 'AutoLedge User', email } }
 }
 
 export default function Dashboard() {
-  const { email } = useLoaderData<typeof dashboardLoader>();
-  const { data: summary } = useSuspenseQuery(dashboardSummaryQuery); // already loaded
+  const { user } = useLoaderData<typeof dashboardLoader>()
+  const submit = useSubmit()
 
-  return (
-    <main>
-      <header>
-        <span>Signed in as {email}</span>
-        <Form method="post" action="/logout">
-          <button type="submit">Log out</button>
-        </Form>
-      </header>
-
-      <h1>Dashboard</h1>
-      <p>Cash balance: {summary.cash_balance}</p>
-      <p>Unmatched transactions: {summary.unmatched_transaction_count}</p>
-    </main>
-  );
+  return <App user={user} onSignOut={() => submit(null, { method: 'post', action: '/logout' })} />
 }
