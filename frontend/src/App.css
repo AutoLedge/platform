@@ -174,3 +174,61 @@ h1 { margin: 0; color: #101820; font-size: 29px; font-weight: 700; line-height: 
   .table-footer { padding: 0 12px; }
   .table-footer > span { font-size: 9px; }
 }
+
+.auth-shell { min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; padding: 24px 40px 20px; color: #182332; background: #f2f5fc; }
+.auth-topbar { width: min(100%, 1500px); margin: 0 auto; }
+.auth-brand { min-height: 40px; display: inline-flex; align-items: center; gap: 10px; color: #102235; font-size: 23px; font-weight: 700; letter-spacing: -.55px; }
+.auth-brand .brand-mark { width: 25px; height: 25px; flex-basis: 25px; }
+.auth-main { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 18px 0 26px; }
+.auth-card { width: min(100%, 500px); padding: 35px 36px 27px; background: #fff; border: 1px solid #e7ebf1; border-radius: 14px; box-shadow: 0 8px 28px #1b2c4008; }
+.auth-card.signup-card { width: min(100%, 540px); padding-top: 30px; padding-bottom: 22px; }
+.auth-heading { margin-bottom: 27px; text-align: center; }
+.auth-heading h1 { font-size: 27px; letter-spacing: -.55px; }
+.auth-heading p { margin: 7px 0 0; color: #78869a; font-size: 13px; }
+.auth-form { display: grid; gap: 17px; }
+.auth-field { min-width: 0; display: grid; gap: 7px; }
+.auth-field label, .role-fieldset legend { color: #253448; font-size: 12px; font-weight: 600; }
+.auth-field input { width: 100%; height: 45px; padding: 0 13px; color: #27384c; border: 1px solid #d9e0e9; border-radius: 7px; outline: none; background: #fff; font: inherit; font-size: 13px; transition: border-color .15s ease, box-shadow .15s ease; }
+.auth-field input::placeholder { color: #93a0b0; }
+.auth-field input:focus { border-color: #6594df; box-shadow: 0 0 0 3px #6594df22; }
+.password-input-wrap { position: relative; }
+.password-input-wrap input { padding-right: 44px; }
+.password-visibility { position: absolute; top: 0; right: 5px; width: 37px; height: 45px; display: grid; place-items: center; color: #8391a3; border: 0; background: transparent; cursor: pointer; }
+.auth-options { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: -1px; }
+.remember-option { display: inline-flex; align-items: center; gap: 8px; color: #344254; font-size: 12px; cursor: pointer; }
+.remember-option input { width: 16px; height: 16px; margin: 0; accent-color: #347fe5; }
+.auth-text-button, .auth-switch button { padding: 0; color: #347fe5; border: 0; background: none; font: inherit; font-size: 12px; font-weight: 550; cursor: pointer; }
+.auth-submit { min-height: 46px; margin-top: 4px; color: #fff; border: 0; border-radius: 7px; background: #2877e9; box-shadow: 0 2px 4px #2877e91c; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .15s ease, transform .15s ease; }
+.auth-submit:hover { background: #216bd3; }
+.auth-submit:active { transform: translateY(1px); }
+.auth-switch { margin-top: 17px; padding-top: 16px; display: flex; justify-content: center; gap: 4px; border-top: 1px solid #e8edf3; color: #69798d; font-size: 12px; }
+.auth-switch button { font-size: 12px; }
+.auth-footnote { margin: 9px 0 0; color: #8290a2; font-size: 11px; text-align: center; }
+.role-fieldset { min-width: 0; margin: 0; padding: 0; border: 0; }
+.role-fieldset legend { margin-bottom: 7px; padding: 0; }
+.role-fieldset legend span { color: #8c98a7; font-weight: 400; }
+.role-options { display: grid; grid-template-columns: 1fr 1.15fr; gap: 10px; }
+.role-option { min-width: 0; min-height: 41px; padding: 0 11px; display: flex; align-items: center; gap: 9px; color: #344254; border: 1px solid #dce3ec; border-radius: 7px; background: #fff; font: inherit; font-size: 11px; text-align: left; white-space: nowrap; cursor: pointer; }
+.role-option.selected { border-color: #8baee4; background: #f7faff; }
+.radio-indicator { width: 16px; height: 16px; flex: 0 0 16px; display: inline-grid; place-items: center; border: 1.5px solid #9ba9ba; border-radius: 50%; }
+.role-option.selected .radio-indicator { border-color: #347fe5; }
+.role-option.selected .radio-indicator::after { width: 8px; height: 8px; border-radius: 50%; background: #347fe5; content: ''; }
+.signup-card .auth-heading { margin-bottom: 20px; }
+.signup-card .auth-form { gap: 13px; }
+.signup-card .auth-switch { margin-top: 14px; padding-top: 13px; }
+.demo-preview-link { margin-top: 17px; padding: 5px 8px; display: inline-flex; align-items: center; gap: 6px; color: #77879a; border: 0; background: transparent; font: inherit; font-size: 11px; cursor: pointer; }
+.demo-preview-link:hover { color: #347fe5; }
+
+@media (max-width: 600px) {
+  .auth-shell { padding: 18px 16px 14px; }
+  .auth-brand { font-size: 20px; }
+  .auth-main { justify-content: flex-start; padding: 36px 0 16px; }
+  .auth-card, .auth-card.signup-card { padding: 27px 20px 22px; border-radius: 12px; }
+  .auth-heading { margin-bottom: 23px; }
+  .auth-heading h1 { font-size: 23px; }
+  .auth-form, .signup-card .auth-form { gap: 15px; }
+  .signup-card .auth-heading { margin-bottom: 19px; }
+  .role-options { grid-template-columns: 1fr; gap: 7px; }
+  .role-option { min-height: 39px; }
+  .auth-switch { flex-wrap: wrap; }
+}
