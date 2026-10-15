@@ -1,0 +1,96 @@
+.profile-menu-wrapper {
+  position: relative;
+  margin-top: auto;
+}
+
+.profile-menu-wrapper .business-switcher {
+  margin-top: 0;
+}
+
+.profile-popup {
+  position: absolute;
+  z-index: 20;
+  bottom: calc(100% + 13px);
+  left: 0;
+  width: 310px;
+  padding: 22px 20px 17px;
+  color: #121820;
+  background: #fff;
+  border: 1px solid #e8ebef;
+  border-radius: 11px;
+  box-shadow: 0 14px 38px #0a172533;
+}
+
+.profile-popup-identity {
+  display: grid;
+  gap: 5px;
+  padding: 0 1px 20px;
+}
+
+.profile-popup-identity strong {
+  color: #121820;
+  font-size: 18px;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.profile-popup-identity span {
+  color: #4e5967;
+  font-size: 13px;
+  line-height: 1.4;
+  overflow-wrap: anywhere;
+}
+
+.profile-popup-divider {
+  height: 1px;
+  background: #e5e8ed;
+}
+
+.profile-popup-actions {
+  display: grid;
+  padding: 8px 0;
+}
+
+.profile-popup-actions button {
+  min-height: 42px;
+  padding: 0 1px;
+  color: #202832;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  font: inherit;
+  font-size: 14px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.profile-popup-actions button:hover {
+  padding-left: 8px;
+  color: #1c67c9;
+  background: #f3f7fd;
+}
+
+.profile-popup-actions .profile-signout {
+  color: #bd4545;
+}
+
+.profile-popup-actions .profile-signout:hover {
+  color: #a93434;
+  background: #fff2f1;
+}
+
+@media (max-width: 800px) {
+  .profile-popup {
+    left: calc(100% + 11px);
+    bottom: -10px;
+    width: min(310px, calc(100vw - 100px));
+  }
+}
+
+@media (max-width: 420px) {
+  .profile-popup {
+    left: calc(100% + 7px);
+    width: calc(100vw - 90px);
+    padding: 18px 16px 13px;
+  }
+}

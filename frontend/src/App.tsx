@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import '@/App.css'
+import ProfilePopup from '@/components/ProfilePopup'
 
 type Page = 'Overview' | 'Reconciliation' | 'Transactions' | 'Invoices' | 'Connections' | 'Settings'
 type AuthMode = 'login' | 'signup'
@@ -49,7 +50,7 @@ const reconciliationRows = [
   { date: 'Oct 09, 2026', description: 'Client payment · Jordan Lee', reference: '—', amount: '+$875.00', status: 'Unmatched' },
 ]
 
-function Sidebar({ page, onNavigate }: { page: Page; onNavigate: (page: Page) => void }) {
+function Sidebar({ page, onNavigate, onSignOut }: { page: Page; onNavigate: (page: Page) => void; onSignOut: () => void }) {
   const renderLink = ({ label, icon }: { label: Page; icon: IconName }) => (
     <button key={label} className={`nav-link${page === label ? ' active' : ''}`} onClick={() => onNavigate(label)} aria-current={page === label ? 'page' : undefined}>
       <Icon name={icon} /><span>{label}</span>
@@ -66,9 +67,7 @@ function Sidebar({ page, onNavigate }: { page: Page; onNavigate: (page: Page) =>
         <div className="nav-divider" />
         <div className="nav-group">{secondaryLinks.map(renderLink)}</div>
       </nav>
-      <button className="business-switcher" aria-label="Current business: Business Co.">
-        <span className="avatar" aria-hidden="true">B</span><span>Business Co.</span>
-      </button>
+      <ProfilePopup onPreferences={() => onNavigate('Settings')} onSignOut={onSignOut} />
     </aside>
   )
 }
@@ -212,7 +211,7 @@ function App() {
   const [authMode, setAuthMode] = useState<AuthMode>('login')
   const [showDashboard, setShowDashboard] = useState(false)
   if (!showDashboard) return <AuthPage mode={authMode} onModeChange={setAuthMode} onPreviewDashboard={() => setShowDashboard(true)} />
-  return <div className="app-shell"><Sidebar page={page} onNavigate={setPage} /><div className="main-column"><Topbar />{page === 'Overview' ? <Overview /> : page === 'Reconciliation' ? <Reconciliation /> : <ComingSoon page={page} />}</div></div>
+  return <div className="app-shell"><Sidebar page={page} onNavigate={setPage} onSignOut={() => setShowDashboard(false)} /><div className="main-column"><Topbar />{page === 'Overview' ? <Overview /> : page === 'Reconciliation' ? <Reconciliation /> : <ComingSoon page={page} />}</div></div>
 }
 
 export default App
