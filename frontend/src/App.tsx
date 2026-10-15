@@ -1,10 +1,9 @@
 import { useState } from 'react'
-import '@/App.css'
 import ProfilePopup from '@/components/ProfilePopup'
 
 type Page = 'Overview' | 'Reconciliation' | 'Transactions' | 'Invoices' | 'Connections' | 'Settings'
-type AuthMode = 'login' | 'signup'
-type IconName = 'overview' | 'reconciliation' | 'transactions' | 'invoices' | 'connections' | 'settings' | 'bell' | 'arrow' | 'alert' | 'check' | 'calendar' | 'eye'
+type IconName = 'overview' | 'reconciliation' | 'transactions' | 'invoices' | 'connections' | 'settings' | 'bell' | 'arrow' | 'alert' | 'check' | 'calendar'
+type DashboardUser = { name: string; email: string }
 
 const primaryLinks: { label: Page; icon: IconName }[] = [
   { label: 'Overview', icon: 'overview' },
@@ -32,7 +31,6 @@ function Icon({ name, size = 20 }: { name: IconName; size?: number }) {
     alert: <><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16h.01" /></>,
     check: <><circle cx="12" cy="12" r="9" /><path d="m8 12 2.5 2.5L16 9" /></>,
     calendar: <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 10h18" /></>,
-    eye: <><path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12Z" /><circle cx="12" cy="12" r="3" /></>,
   }
   return <svg {...common}>{paths[name]}</svg>
 }
@@ -50,7 +48,7 @@ const reconciliationRows = [
   { date: 'Oct 09, 2026', description: 'Client payment · Jordan Lee', reference: '—', amount: '+$875.00', status: 'Unmatched' },
 ]
 
-function Sidebar({ page, onNavigate, onSignOut }: { page: Page; onNavigate: (page: Page) => void; onSignOut: () => void }) {
+function Sidebar({ page, user, onNavigate, onSignOut }: { page: Page; user: DashboardUser; onNavigate: (page: Page) => void; onSignOut: () => void }) {
   const renderLink = ({ label, icon }: { label: Page; icon: IconName }) => (
     <button key={label} className={`nav-link${page === label ? ' active' : ''}`} onClick={() => onNavigate(label)} aria-current={page === label ? 'page' : undefined}>
       <Icon name={icon} /><span>{label}</span>
@@ -67,7 +65,7 @@ function Sidebar({ page, onNavigate, onSignOut }: { page: Page; onNavigate: (pag
         <div className="nav-divider" />
         <div className="nav-group">{secondaryLinks.map(renderLink)}</div>
       </nav>
-      <ProfilePopup onPreferences={() => onNavigate('Settings')} onSignOut={onSignOut} />
+      <ProfilePopup name={user.name} email={user.email} onPreferences={() => onNavigate('Settings')} onSignOut={onSignOut} />
     </aside>
   )
 }
@@ -155,63 +153,9 @@ function ComingSoon({ page }: { page: Page }) {
   return <main className="page-content coming-soon"><p className="eyebrow">FINANCIAL WORKSPACE</p><h1>{page}</h1><p className="page-subtitle">This section is coming soon.</p><div className="coming-card"><span className="coming-icon"><Icon name={page === 'Invoices' ? 'invoices' : page === 'Transactions' ? 'transactions' : page === 'Connections' ? 'connections' : 'settings'} size={24} /></span><h2>{page} will appear here</h2><p>We’re laying the groundwork for your financial workspace.</p></div></main>
 }
 
-function PasswordField({ id, placeholder }: { id: string; placeholder: string }) {
-  return (
-    <div className="auth-field">
-      <label htmlFor={id}>Password</label>
-      <div className="password-input-wrap">
-        <input id={id} name="password" type="password" placeholder={placeholder} autoComplete={id === 'login-password' ? 'current-password' : 'new-password'} />
-        <button className="password-visibility" type="button" aria-label="Show password"><Icon name="eye" size={18} /></button>
-      </div>
-    </div>
-  )
-}
-
-function AuthPage({ mode, onModeChange, onPreviewDashboard }: { mode: AuthMode; onModeChange: (mode: AuthMode) => void; onPreviewDashboard: () => void }) {
-  const [role, setRole] = useState<'owner' | 'accountant'>('owner')
-  const isSignup = mode === 'signup'
-
-  return (
-    <main className="auth-shell">
-      <header className="auth-topbar">
-        <div className="auth-brand"><span className="brand-mark" aria-hidden="true" /><span>AutoLedge</span></div>
-      </header>
-      <div className="auth-main">
-        <section className={`auth-card${isSignup ? ' signup-card' : ''}`} aria-labelledby="auth-title">
-          <div className="auth-heading">
-            <h1 id="auth-title">{isSignup ? 'Create your workspace' : 'Welcome back'}</h1>
-            <p>{isSignup ? 'Start with your account and business details' : 'Sign in to your workspace'}</p>
-          </div>
-          <form className="auth-form" onSubmit={(event) => event.preventDefault()}>
-            {isSignup && <div className="auth-field"><label htmlFor="signup-name">Your name</label><input id="signup-name" name="name" type="text" placeholder="Your name" autoComplete="name" /></div>}
-            <div className="auth-field"><label htmlFor={`${mode}-email`}>Work email</label><input id={`${mode}-email`} name="email" type="email" placeholder="you@business.com" autoComplete="email" /></div>
-            <PasswordField id={`${mode}-password`} placeholder={isSignup ? 'Create a password' : 'Enter your password'} />
-            {isSignup ? (
-              <>
-                <div className="auth-field"><label htmlFor="signup-business">Business name</label><input id="signup-business" name="business" type="text" placeholder="Your business name" autoComplete="organization" /></div>
-                <fieldset className="role-fieldset"><legend>Your role <span>(optional)</span></legend><div className="role-options">
-                  <button type="button" className={`role-option${role === 'owner' ? ' selected' : ''}`} aria-pressed={role === 'owner'} onClick={() => setRole('owner')}><span className="radio-indicator" />Business owner</button>
-                  <button type="button" className={`role-option${role === 'accountant' ? ' selected' : ''}`} aria-pressed={role === 'accountant'} onClick={() => setRole('accountant')}><span className="radio-indicator" />Accountant / bookkeeper</button>
-                </div></fieldset>
-              </>
-            ) : <div className="auth-options"><label className="remember-option"><input type="checkbox" name="remember" /> <span>Remember me</span></label><button type="button" className="auth-text-button">Forgot password?</button></div>}
-            <button className="auth-submit" type="submit">{isSignup ? 'Create account' : 'Sign in'}</button>
-          </form>
-          <div className="auth-switch">{isSignup ? <><span>Already have an account?</span> <button type="button" onClick={() => onModeChange('login')}>Sign in</button></> : <><span>New to AutoLedge?</span> <button type="button" onClick={() => onModeChange('signup')}>Create account</button></>}</div>
-          {isSignup && <p className="auth-footnote">Bank accounts can be connected later.</p>}
-        </section>
-        <button className="demo-preview-link" type="button" onClick={onPreviewDashboard}>Skip sign-in · view sample dashboard <Icon name="arrow" size={15} /></button>
-      </div>
-    </main>
-  )
-}
-
-function App() {
+function App({ user, onSignOut }: { user: DashboardUser; onSignOut: () => void }) {
   const [page, setPage] = useState<Page>('Overview')
-  const [authMode, setAuthMode] = useState<AuthMode>('login')
-  const [showDashboard, setShowDashboard] = useState(false)
-  if (!showDashboard) return <AuthPage mode={authMode} onModeChange={setAuthMode} onPreviewDashboard={() => setShowDashboard(true)} />
-  return <div className="app-shell"><Sidebar page={page} onNavigate={setPage} onSignOut={() => setShowDashboard(false)} /><div className="main-column"><Topbar />{page === 'Overview' ? <Overview /> : page === 'Reconciliation' ? <Reconciliation /> : <ComingSoon page={page} />}</div></div>
+  return <div className="app-shell"><Sidebar page={page} user={user} onNavigate={setPage} onSignOut={onSignOut} /><div className="main-column"><Topbar />{page === 'Overview' ? <Overview /> : page === 'Reconciliation' ? <Reconciliation /> : <ComingSoon page={page} />}</div></div>
 }
 
 export default App

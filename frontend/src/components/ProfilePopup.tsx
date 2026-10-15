@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from 'react'
 import './ProfilePopup.css'
 
 type ProfilePopupProps = {
+  name: string
+  email: string
   onPreferences: () => void
   onSignOut: () => void
 }
 
-export default function ProfilePopup({ onPreferences, onSignOut }: ProfilePopupProps) {
+export default function ProfilePopup({ name, email, onPreferences, onSignOut }: ProfilePopupProps) {
   const [isOpen, setIsOpen] = useState(false)
   const popupRef = useRef<HTMLDivElement>(null)
   const triggerRef = useRef<HTMLButtonElement>(null)
@@ -53,8 +55,8 @@ export default function ProfilePopup({ onPreferences, onSignOut }: ProfilePopupP
       {isOpen && (
         <section className="profile-popup" id="profile-popup" role="dialog" aria-label="Profile options">
           <div className="profile-popup-identity">
-            <strong>Juan Olarte</strong>
-            <span>juan@businessco.ca</span>
+            <strong>{name}</strong>
+            <span>{email}</span>
           </div>
           <div className="profile-popup-divider" />
           <div className="profile-popup-actions">

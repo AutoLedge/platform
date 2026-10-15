@@ -6,6 +6,7 @@ import { supabase } from "@/lib/supabase";
 export const sessionContext = createContext<Session>();
 
 async function getSession() {
+  if (!supabase) return null;
   const { data } = await supabase.auth.getSession();
   return data.session;
 }
