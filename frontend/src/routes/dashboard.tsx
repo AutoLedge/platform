@@ -1,8 +1,8 @@
 import { Form, useLoaderData, type LoaderFunctionArgs } from "react-router";
 import { queryOptions, useSuspenseQuery } from "@tanstack/react-query";
-import { sessionContext } from "../lib/auth";
-import { apiFetch } from "../lib/api";
-import { queryClient } from "../lib/query-client";
+import { sessionContext } from "@/lib/auth";
+import { apiFetch } from "@/lib/api";
+import { queryClient } from "@/lib/query-client";
 
 type DashboardSummary = {
   cash_balance: string;
