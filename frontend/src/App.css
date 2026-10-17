@@ -1,10 +1,10 @@
 .app-shell { min-height: 100vh; display: flex; background: #f2f5fc; }
 .sidebar { width: 264px; flex: 0 0 264px; min-height: 100vh; box-sizing: border-box; padding: 24px 16px 20px; display: flex; flex-direction: column; color: #f6f8fc; background: #0d1e2d; }
-.brand { display: flex; align-items: center; gap: 12px; padding: 0 14px; height: 48px; border: 0; background: transparent; color: #fff; font-size: 25px; font-weight: 700; letter-spacing: -.7px; cursor: pointer; text-align: left; }
+.brand { display: flex; align-items: center; gap: 12px; padding: 0 14px; height: 48px; border: 0; background: transparent; color: #fff; font-size: 25px; font-weight: 700; letter-spacing: -.7px; cursor: pointer; text-align: left; text-decoration: none; }
 .brand-mark { width: 23px; height: 23px; flex: 0 0 23px; border-radius: 50%; background: radial-gradient(circle at 30% 28%, #54d277, #30a94e 53%, #218444); box-shadow: inset -3px -3px 6px #17683e55; }
 .navigation { margin-top: 26px; display: flex; flex: 1; flex-direction: column; gap: 20px; }
 .nav-group { display: grid; gap: 5px; }
-.nav-link { min-height: 44px; width: 100%; padding: 0 15px 0 19px; display: flex; align-items: center; gap: 18px; color: #7f8c98; border: 0; border-radius: 10px; background: transparent; font: inherit; font-size: 16px; text-align: left; cursor: pointer; transition: background-color .15s ease, color .15s ease; }
+.nav-link { min-height: 44px; width: 100%; padding: 0 15px 0 19px; display: flex; align-items: center; gap: 18px; color: #7f8c98; border: 0; border-radius: 10px; background: transparent; font: inherit; font-size: 16px; text-align: left; text-decoration: none; cursor: pointer; transition: background-color .15s ease, color .15s ease; }
 .nav-link:hover { color: #eff5fc; background: #ffffff0d; }
 .nav-link.active { background: #1c3b54; color: #f7f9fc; }
 .nav-link svg { flex: 0 0 auto; }
