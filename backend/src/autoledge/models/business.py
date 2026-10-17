@@ -8,6 +8,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from autoledge.db.base import Base, TimestampMixin
 
 if TYPE_CHECKING:
+    from autoledge.models.plaid import PlaidItem
     from autoledge.models.user import User
 
 
@@ -37,6 +38,14 @@ class Business(TimestampMixin, Base):
         back_populates="business",
         cascade="all, delete-orphan",
         passive_deletes=True,
+    )
+
+    # passive_deletes="all": SQLAlchemy never touches Items when a business is
+    # deleted, so the database's ON DELETE RESTRICT blocks the delete while any
+    # Item remains (they must be removed at Plaid first).
+    plaid_items: Mapped[list["PlaidItem"]] = relationship(
+        back_populates="business",
+        passive_deletes="all",
     )
 
     def __repr__(self) -> str:
