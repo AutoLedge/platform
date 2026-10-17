@@ -24,6 +24,16 @@ The required Python version is specified in the `.python-version` file. `uv` rea
 uv python install
 ```
 
+## Install dependencies
+
+From the `backend` directory, install the project dependencies with:
+
+```powershell
+uv sync
+```
+
+This creates the virtual environment in `.venv` (if it does not exist) and installs the dependencies declared in `pyproject.toml`, pinned by `uv.lock`. Re-run it whenever dependencies change.
+
 ## Run the backend in development
 
 From this directory, run the project script with:
