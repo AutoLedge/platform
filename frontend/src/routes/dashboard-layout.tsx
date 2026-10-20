@@ -15,10 +15,10 @@ type DashboardRoute = {
 }
 
 const primaryRoutes: DashboardRoute[] = [
-  { label: 'Overview', path: '/', icon: 'overview' },
-  { label: 'Reconciliation', path: '/reconciliation', icon: 'reconciliation' },
-  { label: 'Transactions', path: '/transactions', icon: 'transactions' },
-  { label: 'Invoices', path: '/invoices', icon: 'invoices' },
+  { label: 'Overview (Ahmed)', path: '/', icon: 'overview' },
+  { label: 'Reconciliation (Ahmed)', path: '/reconciliation', icon: 'reconciliation' },
+  { label: 'Transactions (Sebastian)', path: '/transactions', icon: 'transactions' },
+  { label: 'Invoices (Sebastian)', path: '/invoices', icon: 'invoices' },
 ]
 
 const secondaryRoutes: DashboardRoute[] = [

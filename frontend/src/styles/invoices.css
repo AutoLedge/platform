@@ -1,0 +1,35 @@
+/* Invoices route — Figma: AutoLedge / Invoices (49:294). Shared ledger styles: styles/LedgerControls.css */
+
+.invoices-table { min-width: 1068px; }
+
+/* Column widths include the 16px gutter before each column after the first */
+.invoices-table .col-invoice { width: 124px; }       /* 20 inset + 104 */
+.invoices-table .col-counterparty { width: 200px; }  /* 16 + 184 */
+.invoices-table .col-issue { width: 116px; }         /* 16 + 100 */
+.invoices-table .col-due { width: 116px; }           /* 16 + 100 */
+.invoices-table .col-amount { width: 126px; }        /* 16 + 110 */
+.invoices-table .col-status { width: 124px; }        /* 16 + 108 */
+
+.invoices-table td { white-space: nowrap; }
+.invoices-table td.ledger-strong { white-space: normal; }
+
+.invoice-number { display: block; }
+.invoice-overdue { color: #95603c; }
+
+.invoices-table tbody tr.is-highlighted { background: #f6f8fd; }
+
+.invoice-document {
+  max-width: 100%;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  color: var(--ledger-accent);
+  border: 0;
+  background: none;
+  font: 400 13px/normal var(--ledger-plex);
+  cursor: pointer;
+}
+.invoice-document img { flex-shrink: 0; }
+.invoice-document span { overflow: hidden; text-decoration: underline; text-overflow: ellipsis; }
+.invoice-document:hover span { color: #4e5e83; }

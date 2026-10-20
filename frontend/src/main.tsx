@@ -5,8 +5,8 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { router } from "@/router";
 import { queryClient } from "@/lib/query-client";
 import { supabase } from "@/lib/supabase";
-import "@/index.css";
-import "@/App.css";
+import "@/styles/index.css";
+import "@/styles/App.css";
 
 // Runs whenever the session ends: logout, a 401 from FastAPI, or sign-out in another tab.
 supabase?.auth.onAuthStateChange((event) => {

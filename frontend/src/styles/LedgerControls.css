@@ -1,0 +1,253 @@
+/* Shared styles for ledger pages — Figma: AutoLedge / Transactions (47:399), Invoices (49:294) */
+
+.ledger-page {
+  --ledger-ink: #171c23;
+  --ledger-muted: #7b8189;
+  --ledger-accent: #7181af;
+  --ledger-rule: #c3d0de;
+  --ledger-plex: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+
+  max-width: 1540px;
+  margin: 0 auto;
+  padding: 20px 36px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  box-sizing: border-box;
+}
+
+/* ── Page header ── */
+
+.ledger-header { min-height: 60px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
+.ledger-intro { max-width: 780px; display: flex; flex-direction: column; gap: 7px; }
+.ledger-intro h1 { margin: 0; color: #000; font-size: 32px; font-weight: 700; line-height: 1.2; }
+.ledger-intro p { margin: 0; color: rgba(0, 0, 0, 0.48); font-size: 16px; }
+
+/* Outlined header action (e.g. "Upload invoices") */
+.ledger-header-action {
+  height: 43px;
+  padding: 0 16px;
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: 8px;
+  color: var(--ledger-ink);
+  border: 1px solid rgba(92, 92, 92, 0.39);
+  border-radius: 8px;
+  background: #fff;
+  font: 400 15px/normal var(--ledger-plex);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ledger-header-action:hover { background: #f8fafd; }
+
+/* ── Native selects styled as the designs' dropdowns ── */
+
+.ledger-select { position: relative; display: block; box-sizing: border-box; }
+.ledger-select select {
+  width: 100%;
+  height: 100%;
+  padding: 0 34px 0 12px;
+  color: var(--ledger-ink);
+  border: 1px solid #d3deef;
+  border-radius: 8px;
+  background: #fff;
+  font: 400 15px/normal var(--ledger-plex);
+  appearance: none;
+  cursor: pointer;
+  text-overflow: ellipsis;
+}
+.ledger-select select:focus-visible { outline: 2px solid #6a9be8; outline-offset: 2px; }
+.ledger-select-arrow {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  width: 0;
+  height: 0;
+  border-top: 5px solid #49454f;
+  border-right: 5px solid transparent;
+  border-left: 5px solid transparent;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+/* Header account selector */
+.ledger-account-select { width: 278px; height: 47px; flex-shrink: 0; }
+.ledger-account-select select { padding-left: 14px; border-color: rgba(92, 92, 92, 0.39); }
+
+/* ── Filters ── */
+
+.ledger-filters { display: flex; align-items: flex-end; gap: 12px; }
+.ledger-filter { display: flex; flex-direction: column; gap: 6px; flex-shrink: 0; }
+.ledger-filter-label { color: var(--ledger-muted); font: 600 13px/normal var(--ledger-plex); white-space: nowrap; }
+.ledger-filter-control { height: 38px; }
+.ledger-filter-wide { width: 286px; }
+.ledger-filter-medium { width: 230px; }
+.ledger-filter-narrow { width: 204px; }
+
+.ledger-reset { min-width: 0; flex: 1; display: flex; justify-content: flex-end; padding-bottom: 11px; }
+.ledger-reset button { padding: 0; color: var(--ledger-accent); border: 0; background: none; font: 600 13px/normal var(--ledger-plex); cursor: pointer; }
+.ledger-reset button:hover { text-decoration: underline; }
+
+/* ── Table card ── */
+
+.ledger-card { overflow: hidden; background: #fff; border-radius: 9px; }
+
+.ledger-toolbar { min-height: 48px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.ledger-toolbar-end { min-width: 0; display: flex; align-items: center; gap: 16px; }
+.ledger-currency-note { margin: 0; color: var(--ledger-muted); font-size: 13px; white-space: nowrap; }
+
+.ledger-tabs { display: flex; gap: 8px; }
+.ledger-tab {
+  padding: 7px 13px;
+  display: inline-flex;
+  gap: 0.6em;
+  color: var(--ledger-muted);
+  border: 0;
+  border-radius: 7px;
+  background: #fff;
+  font: 600 13px/normal var(--ledger-plex);
+  white-space: nowrap;
+  cursor: pointer;
+}
+.ledger-tab:hover { background: #f2f5fb; }
+.ledger-tab.selected { color: var(--ledger-accent); background: #e5ebf7; }
+
+/* Search (not in the Figma frames — sized to sit beside the tabs) */
+.ledger-search {
+  width: 240px;
+  height: 32px;
+  padding: 0 10px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  color: var(--ledger-muted);
+  border: 1px solid #d3deef;
+  border-radius: 8px;
+  background: #fff;
+  cursor: text;
+}
+.ledger-search:focus-within { border-color: #9fb3d9; outline: 2px solid #e5ebf7; }
+.ledger-search svg { flex-shrink: 0; }
+.ledger-search input {
+  min-width: 0;
+  flex: 1;
+  padding: 0;
+  color: var(--ledger-ink);
+  border: 0;
+  outline: 0;
+  background: transparent;
+  font: 400 14px/normal var(--ledger-plex);
+}
+.ledger-search input::placeholder { color: #a3a9b1; }
+
+/* Active filter chip (e.g. a single invoice opened from Transactions) */
+.ledger-chip {
+  padding: 5px 6px 5px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: #4e5e83;
+  border-radius: 7px;
+  background: #e5ebf7;
+  font: 600 13px/normal var(--ledger-plex);
+  white-space: nowrap;
+}
+.ledger-chip button {
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  display: inline-grid;
+  place-items: center;
+  color: inherit;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  font: inherit;
+  font-size: 15px;
+  line-height: 1;
+  cursor: pointer;
+}
+.ledger-chip button:hover { background: #d3ddf1; }
+
+/* ── Table ── */
+
+.ledger-table-scroll { overflow-x: auto; }
+.ledger-table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+
+/* Cells carry the design's 16px column gap as left padding; first/last get the 20px inset. */
+.ledger-table th,
+.ledger-table td { padding: 0 0 0 16px; text-align: left; vertical-align: middle; }
+.ledger-table th:first-child,
+.ledger-table td:first-child { padding-left: 20px; }
+.ledger-table th:last-child,
+.ledger-table td:last-child { padding-right: 20px; }
+
+.ledger-table thead tr { height: 44px; background: #f8fafd; }
+.ledger-table th { color: var(--ledger-muted); font: 600 13px/normal var(--ledger-plex); white-space: nowrap; }
+.ledger-table .align-right { text-align: right; }
+
+.ledger-sort { padding: 0; color: inherit; border: 0; background: none; font: inherit; cursor: pointer; }
+.ledger-sort:hover { color: var(--ledger-ink); }
+
+.ledger-table tbody tr { height: 60px; border-top: 1px solid var(--ledger-rule); }
+.ledger-table tbody tr:hover { background: #fafbfe; }
+
+.ledger-strong { color: var(--ledger-ink); font: 600 15px/normal var(--ledger-plex); }
+.ledger-item { color: var(--ledger-ink); font: 400 14px/21px var(--ledger-plex); }
+.ledger-caption { display: block; color: var(--ledger-muted); font-size: 11px; white-space: nowrap; }
+.ledger-amount { white-space: nowrap; font-variant-numeric: tabular-nums; }
+
+.ledger-badge { padding: 4px 9px; display: inline-block; border-radius: 3px; font-size: 12px; font-weight: 500; white-space: nowrap; }
+.ledger-badge.positive { color: #1c6b45; background: #edf5ef; }
+.ledger-badge.neutral { color: var(--ledger-muted); background: #f2f3f5; }
+.ledger-badge.warning { color: #95603c; background: #faf0e8; }
+
+.ledger-empty { height: 120px; color: var(--ledger-muted); font-size: 13px; text-align: center !important; }
+
+/* ── Pagination ── */
+
+.ledger-pagination {
+  min-height: 48px;
+  padding: 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid var(--ledger-rule);
+  white-space: nowrap;
+}
+.ledger-pagination p { margin: 0; color: var(--ledger-muted); font-size: 13px; }
+.ledger-pagination-controls { display: flex; align-items: center; gap: 16px; color: var(--ledger-ink); font: 600 13px/normal var(--ledger-plex); }
+.ledger-pagination-controls button { padding: 0; color: var(--ledger-accent); border: 0; background: none; font: inherit; cursor: pointer; }
+.ledger-pagination-controls button:disabled { color: #b5bac2; cursor: default; }
+
+/* ── Responsive (breakpoints follow App.css) ── */
+
+@media (max-width: 1280px) {
+  .ledger-filters { flex-wrap: wrap; }
+  .ledger-filter { flex: 1 1 180px; width: auto; }
+  .ledger-reset { flex: 0 0 auto; }
+  .ledger-toolbar { flex-wrap: wrap; padding: 8px 16px; }
+}
+
+@media (max-width: 800px) {
+  .ledger-header { flex-direction: column; align-items: stretch; gap: 14px; }
+  .ledger-account-select { width: 100%; }
+  .ledger-header-action { align-self: flex-start; }
+}
+
+@media (max-width: 600px) {
+  .ledger-page { padding: 20px 15px; }
+  .ledger-intro h1 { font-size: 26px; }
+  .ledger-intro p { font-size: 14px; }
+  .ledger-filter { flex-basis: 100%; }
+  .ledger-toolbar { padding: 10px 12px; }
+  .ledger-toolbar-end { width: 100%; flex-wrap: wrap; gap: 8px; }
+  .ledger-search { width: 100%; }
+  .ledger-tabs { max-width: 100%; overflow-x: auto; gap: 4px; }
+  .ledger-tab { padding: 7px 10px; }
+  .ledger-pagination { padding: 10px 12px; flex-wrap: wrap; }
+  .ledger-pagination p { font-size: 11px; }
+}

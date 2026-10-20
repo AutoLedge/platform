@@ -10,6 +10,7 @@ export type DashboardIconName =
   | 'alert'
   | 'check'
   | 'calendar'
+  | 'search'
 
 type DashboardIconProps = {
   name: DashboardIconName
@@ -28,6 +29,7 @@ const iconPaths: Record<DashboardIconName, React.ReactNode> = {
   alert: <><circle cx="12" cy="12" r="9" /><path d="M12 8v5M12 16h.01" /></>,
   check: <><circle cx="12" cy="12" r="9" /><path d="m8 12 2.5 2.5L16 9" /></>,
   calendar: <><rect x="3" y="5" width="18" height="16" rx="2" /><path d="M16 3v4M8 3v4M3 10h18" /></>,
+  search: <><circle cx="11" cy="11" r="7" /><path d="m20 20-4-4" /></>,
 }
 
 export default function DashboardIcon({ name, size = 20 }: DashboardIconProps) {

@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import './ProfilePopup.css'
+import '@/styles/ProfilePopup.css'
 
 type ProfilePopupProps = {
   name: string

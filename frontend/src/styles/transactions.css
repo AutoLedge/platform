@@ -1,0 +1,17 @@
+/* Transactions route — Figma: AutoLedge / Transactions (47:399). Shared ledger styles: styles/LedgerControls.css */
+
+.transactions-table { min-width: 960px; }
+
+/* Column widths include the 16px gutter before each column after the first */
+.transactions-table .col-date { width: 168px; }      /* 20 inset + 148 */
+.transactions-table .col-vendor { width: 224px; }    /* 16 + 208 */
+.transactions-table .col-category { width: 238px; }  /* 16 + 222 */
+.transactions-table .col-amount { width: 144px; }    /* 16 + 128 */
+
+.transaction-date { display: block; white-space: nowrap; }
+
+.transaction-match { display: flex; align-items: center; gap: 8px; }
+
+.invoice-link { color: var(--ledger-muted); font-size: 11px; text-decoration: none; white-space: nowrap; }
+.invoice-link:hover,
+.invoice-link:focus-visible { color: var(--ledger-accent); text-decoration: underline; }
