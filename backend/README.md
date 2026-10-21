@@ -1,45 +1,83 @@
- # Backend
+# Backend
 
-This project uses [uv](https://docs.astral.sh/uv/) to manage its Python environment and dependencies. The `dev` script is defined in `pyproject.toml` and starts the backend in development mode.
+Python API for the platform, managed with [uv](https://docs.astral.sh/uv/). The `dev` script is defined in `pyproject.toml` and starts the server in development mode.
 
-## Install uv with Scoop
+## Contents
+
+- [Prerequisites](#prerequisites)
+- [Environment variables](#environment-variables)
+- [Setup](#setup)
+- [Running](#running)
+
+## Prerequisites
+
+| Requirement | Notes |
+| --- | --- |
+| [uv](https://docs.astral.sh/uv/) | Manages the Python version, virtual environment and dependencies |
+| Python | Version is pinned in `.python-version`; `uv` installs it automatically when needed |
+| Database | A reachable database for `DATABASE_URL` |
+
+### Installing uv (Windows, Scoop)
 
 Install [Scoop](https://scoop.sh/) if it is not already available, then run this in PowerShell:
 
 ```powershell
 scoop install uv
-```
-
-Verify the installation:
-
-```powershell
 uv --version
 ```
 
-## Python version
+## Environment variables
 
-The required Python version is specified in the `.python-version` file. `uv` reads this file and will download and install that version automatically when needed while running project commands. To install it explicitly beforehand, run:
+> **Required.** The backend will not start unless these variables are set. Settings are validated at startup (see `src/autoledge/core/config.py`), so a missing value fails immediately.
 
-```powershell
-uv python install
+Create a `.env` file in the `backend` directory. Variables are loaded from it automatically, or from the process environment.
+
+| Variable | Type | Description |
+| --- | --- | --- |
+| `ENVIRONMENT` | string | Deployment environment name, for example `development` or `production` |
+| `DEBUG` | boolean | Enables debug behaviour (`true` / `false`) |
+| `DATABASE_URL` | string | Connection string for the database |
+
+Example `.env`:
+
+```dotenv
+ENVIRONMENT=development
+DEBUG=true
+DATABASE_URL=<your-database-connection-string>
 ```
 
-## Install dependencies
+Never commit `.env` or real credentials.
 
-From the `backend` directory, install the project dependencies with:
+## Setup
 
-```powershell
-uv sync
-```
+Run these from the `backend` directory.
 
-This creates the virtual environment in `.venv` (if it does not exist) and installs the dependencies declared in `pyproject.toml`, pinned by `uv.lock`. Re-run it whenever dependencies change.
+1. Optionally install the pinned Python version up front:
 
-## Run the backend in development
+   ```powershell
+   uv python install
+   ```
 
-From this directory, run the project script with:
+2. Install dependencies:
+
+   ```powershell
+   uv sync
+   ```
+
+   This creates `.venv` if needed and installs the packages from `pyproject.toml`, pinned by `uv.lock`. Re-run it whenever dependencies change.
+
+## Running
+
+Start the development server:
 
 ```powershell
 uv run dev
 ```
 
-`uv run` creates or updates the project environment and installs the dependencies declared by the project as needed before running the `dev` script. The development server runs at `http://127.0.0.1:8000` and reloads when code changes.
+| | |
+| --- | --- |
+| URL | `http://127.0.0.1:8000` |
+| OpenAPI schema | `http://127.0.0.1:8000/openapi.json` |
+| Reload | Automatic on code changes |
+
+The OpenAPI schema is what the frontend uses to generate its API types (see `../frontend/README.md`).

@@ -1,78 +1,71 @@
-# React + TypeScript + Vite
+# Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+React + TypeScript + Vite app, styled with Tailwind CSS and built on React Router, TanStack Query and Supabase.
 
-Currently, two official plugins are available:
+## Contents
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- [Prerequisites](#prerequisites)
+- [Environment variables](#environment-variables)
+- [Running](#running)
+- [Scripts](#scripts)
+- [Generating OpenAPI types](#generating-openapi-types)
 
-## React Compiler
+## Prerequisites
 
-The React Compiler is enabled on this template. See [this documentation](https://react.dev/learn/react-compiler) for more information.
+| Requirement | Notes |
+| --- | --- |
+| Node.js and npm | Used to install dependencies and run scripts |
+| Backend | Must be running locally on port 8000 for API calls and type generation (see `../backend/README.md`) |
+| Supabase project | Provides the URL and publishable key used for the client |
 
-Note: This will impact Vite dev & build performances.
-You can also try [the experimental native React Compiler support in plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md#rust-react-compiler) by using `compiler: true` in the plugin options instead of using the Babel plugin.
+## Environment variables
 
-## Expanding the ESLint configuration
+> **Required.** The frontend needs these variables to talk to Supabase and the backend. Without them, authentication and API requests will not work.
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+Copy the example file and fill in your values:
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
-
+```bash
+cp .env.example .env
 ```
 
-You can also install [eslint-plugin-react-x](https://npmx.dev/package/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://npmx.dev/package/eslint-plugin-react-dom) for React-specific lint rules:
+| Variable | Description |
+| --- | --- |
+| `VITE_SUPABASE_URL` | URL of your Supabase project |
+| `VITE_SUPABASE_PUBLISHABLE_KEY` | Supabase publishable (public) key |
+| `VITE_API_URL` | Base URL of the backend API, for example `http://127.0.0.1:8000` |
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+Vite only exposes variables prefixed with `VITE_` to the browser, and they are embedded in the built bundle. Never put secret keys in them. Restart the dev server after changing any value.
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+## Running
 
+Install dependencies, then start the dev server (Vite, with HMR):
+
+```bash
+npm install
+npm run dev
 ```
+
+## Scripts
+
+Defined in [package.json](package.json):
+
+| Script | Command | Description |
+| --- | --- | --- |
+| `npm run dev` | `vite` | Start the dev server |
+| `npm run build` | `tsc -b && vite build` | Type-check and create a production build |
+| `npm run preview` | `vite preview` | Serve the production build locally |
+| `npm run lint` | `eslint .` | Lint the project |
+| `npm run gen:api` | `openapi-typescript` | Generate API types from the backend OpenAPI spec |
+
+## Generating OpenAPI types
+
+API types are generated from the backend's OpenAPI schema into `src/lib/api-schema.d.ts`.
+
+1. Start the backend so it serves `http://localhost:8000/openapi.json`.
+2. From the `frontend` directory, run:
+
+   ```bash
+   npm run gen:api
+   ```
+
+This runs `npx openapi-typescript@7 http://localhost:8000/openapi.json -o src/lib/api-schema.d.ts`. Re-run it whenever the backend API changes, and commit the updated `api-schema.d.ts`.
