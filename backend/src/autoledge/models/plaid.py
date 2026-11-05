@@ -1,8 +1,19 @@
+import enum
 import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, DateTime, ForeignKey, Text, Uuid, false, func
+from sqlalchemy import (
+    Boolean,
+    CheckConstraint,
+    DateTime,
+    Enum,
+    ForeignKey,
+    Text,
+    Uuid,
+    false,
+    func,
+)
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from autoledge.db.base import Base, TimestampMixin
@@ -10,6 +21,11 @@ from autoledge.db.base import Base, TimestampMixin
 if TYPE_CHECKING:
     from autoledge.models.account import FinancialAccount
     from autoledge.models.business import Business
+
+
+class PlaidEnvironment(enum.StrEnum):
+    SANDBOX = "sandbox"  # Plaid's test environment; fake banks, no billing
+    PRODUCTION = "production"  # real banks; tokens are billed
 
 
 class PlaidItem(TimestampMixin, Base):
@@ -50,6 +66,21 @@ class PlaidItem(TimestampMixin, Base):
     # it is fetched only when code reads this attribute.
     access_token_ciphertext: Mapped[str] = mapped_column(Text, deferred=True)
 
+    # Which Plaid environment issued the access token. A token only works in
+    # the environment that issued it, so the Plaid service must refuse to use a
+    # token whose environment differs from the running app's (settings, N6).
+    # Text plus a CHECK, like MembershipRole, so adding a value is a migration
+    # that replaces plaid_items_plaid_environment_check.
+    plaid_environment: Mapped[PlaidEnvironment] = mapped_column(
+        Enum(
+            PlaidEnvironment,
+            native_enum=False,
+            create_constraint=False,
+            length=20,
+            values_callable=lambda envs: [e.value for e in envs],
+        ),
+    )
+
     # From Link's onSuccess metadata. Shown in the UI ("Reconnect RBC") and used
     # with account name + mask to spot duplicate links before exchanging the
     # public token. Plaid returns null for Items without an institution.
@@ -88,9 +119,22 @@ class PlaidItem(TimestampMixin, Base):
         passive_deletes=True,
     )
 
+    __table_args__ = (
+        # Only known environments. Named "plaid_environment" ->
+        # plaid_items_plaid_environment_check. Autogenerate won't notice if
+        # PlaidEnvironment changes: replace this constraint in a migration.
+        CheckConstraint(
+            "plaid_environment in ({})".format(
+                ", ".join(f"'{e.value}'" for e in PlaidEnvironment)
+            ),
+            name="plaid_environment",
+        ),
+    )
+
     def __repr__(self) -> str:
         # Never include the access token.
         return (
             f"<PlaidItem id={self.id} plaid_item_id={self.plaid_item_id!r} "
+            f"environment={self.plaid_environment} "
             f"institution={self.institution_name!r}>"
         )

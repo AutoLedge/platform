@@ -2,7 +2,7 @@
 # (Alembic autogenerate reads Base.metadata).
 from autoledge.models.account import FinancialAccount
 from autoledge.models.business import Business, BusinessMembership, MembershipRole
-from autoledge.models.plaid import PlaidItem
+from autoledge.models.plaid import PlaidEnvironment, PlaidItem
 from autoledge.models.transaction import Transaction
 from autoledge.models.user import User
 
@@ -11,6 +11,7 @@ __all__ = [
     "BusinessMembership",
     "FinancialAccount",
     "MembershipRole",
+    "PlaidEnvironment",
     "PlaidItem",
     "Transaction",
     "User",

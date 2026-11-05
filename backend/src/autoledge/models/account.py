@@ -3,7 +3,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Text, Uuid, func
+from sqlalchemy import DateTime, ForeignKey, Text, UniqueConstraint, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from autoledge.db.base import Base, Money, TimestampMixin
@@ -44,7 +44,9 @@ class FinancialAccount(TimestampMixin, Base):
     )
 
     # The bank login this account came from. SET NULL: removing the Item at
-    # Plaid ends syncing but keeps the account and its history.
+    # Plaid ends syncing but keeps the account and its history. Business match
+    # with the Item is a service rule, not a constraint (a composite FK can't
+    # SET NULL only this column).
     plaid_item_id: Mapped[uuid.UUID | None] = mapped_column(
         ForeignKey("plaid_items.id", ondelete="SET NULL"),
         index=True,
@@ -95,6 +97,15 @@ class FinancialAccount(TimestampMixin, Base):
     transactions: Mapped[list["Transaction"]] = relationship(
         back_populates="account",
         passive_deletes=True,
+    )
+
+    __table_args__ = (
+        # (id, business_id) is already unique because id is; this declares it so
+        # transactions can reference both columns together and the database can
+        # check that a transaction's business matches its account's.
+        UniqueConstraint(
+            "id", "business_id", name="financial_accounts_id_business_id_key"
+        ),
     )
 
     def __repr__(self) -> str:
