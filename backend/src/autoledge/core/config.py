@@ -1,3 +1,4 @@
+from pydantic import SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -5,6 +6,7 @@ class Settings(BaseSettings):
     ENVIRONMENT: str
     DEBUG: bool
     DATABASE_URL: str
+    PLAID_TOKEN_ENCRYPTION_KEY: SecretStr
 
     model_config = SettingsConfigDict(
         env_file=".env",
@@ -12,4 +14,4 @@ class Settings(BaseSettings):
     )
 
 
-settings = Settings() # pyright: ignore[reportCallIssue]
+settings = Settings()  # pyright: ignore[reportCallIssue]
