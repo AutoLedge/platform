@@ -1,10 +1,11 @@
 from logging.config import fileConfig
 
-import autoledge.models  # noqa: F401  registers every table on Base.metadata
 from alembic import context
+from sqlalchemy import create_engine, pool
+
+import autoledge.models  # noqa: F401  registers every table on Base.metadata
 from autoledge.core.config import settings
 from autoledge.db.base import Base
-from sqlalchemy import create_engine, pool
 
 config = context.config
 

@@ -13,7 +13,7 @@ if TYPE_CHECKING:
 
 
 class MembershipRole(enum.StrEnum):
-    OWNER = "owner"    # one per business; manages bank connections and members
+    OWNER = "owner"  # one per business; manages bank connections and members
     MEMBER = "member"  # works with the business's data
 
 

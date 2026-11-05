@@ -1,5 +1,5 @@
 from datetime import datetime
- 
+
 from sqlalchemy import DateTime, MetaData, Numeric, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -25,11 +25,11 @@ class Base(DeclarativeBase):
 
 class TimestampMixin:
     """Adds created_at / updated_at to any model that lists it as a parent.
- 
+
     updated_at only changes on updates made through the ORM; a raw SQL UPDATE
     must set it itself.
     """
- 
+
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),
@@ -39,4 +39,3 @@ class TimestampMixin:
         server_default=func.now(),
         onupdate=func.now(),
     )
- 
