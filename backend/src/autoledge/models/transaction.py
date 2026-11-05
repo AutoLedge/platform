@@ -6,8 +6,7 @@ from typing import TYPE_CHECKING
 from sqlalchemy import Boolean, Date, ForeignKey, Index, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from autoledge.db.base import Base, TimestampMixin
-from autoledge.models.account import Money
+from autoledge.db.base import Base, Money, TimestampMixin
 
 if TYPE_CHECKING:
     from autoledge.models.account import FinancialAccount

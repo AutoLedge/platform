@@ -3,20 +3,15 @@ from datetime import datetime
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Numeric, Text, Uuid, func
+from sqlalchemy import DateTime, ForeignKey, Text, Uuid, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from autoledge.db.base import Base, TimestampMixin
+from autoledge.db.base import Base, Money, TimestampMixin
 
 if TYPE_CHECKING:
     from autoledge.models.business import Business
     from autoledge.models.plaid import PlaidItem
     from autoledge.models.transaction import Transaction
-
-# Money is stored as exact decimals, never floats. 19 digits with 4 after the
-# point covers any business balance and currencies with up to 4 decimals.
-# Use the same type for every money column (transactions, invoices).
-Money = Numeric(19, 4)
 
 
 class FinancialAccount(TimestampMixin, Base):

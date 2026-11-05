@@ -1,6 +1,6 @@
 from datetime import datetime
  
-from sqlalchemy import DateTime, MetaData, func
+from sqlalchemy import DateTime, MetaData, Numeric, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 # Match the constraint names Postgres (and the Supabase dashboard) generate by
@@ -12,6 +12,11 @@ NAMING_CONVENTION = {
     "ix": "%(table_name)s_%(column_0_name)s_idx",
     "ck": "%(table_name)s_%(constraint_name)s_check",
 }
+
+# Money is stored as exact decimals, never floats. 19 digits with 4 after the
+# point covers any business balance and currencies with up to 4 decimals.
+# Use the same type for every money column (transactions, invoices).
+Money = Numeric(19, 4)
 
 
 class Base(DeclarativeBase):
