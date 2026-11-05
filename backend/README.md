@@ -8,6 +8,7 @@ Python API for the platform, managed with [uv](https://docs.astral.sh/uv/). The 
 - [Environment variables](#environment-variables)
 - [Setup](#setup)
 - [Running](#running)
+- [Code quality](#code-quality)
 - [Database migrations](#database-migrations)
 
 ## Prerequisites
@@ -31,21 +32,22 @@ uv --version
 
 > **Required.** The backend will not start unless these variables are set. Settings are validated at startup (see `src/autoledge/core/config.py`), so a missing value fails immediately.
 
-Create a `.env` file in the `backend` directory. Variables are loaded from it automatically, or from the process environment.
+Copy `.env.example` to `.env` in the `backend` directory and fill in the values:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Variables are loaded from `.env` automatically, or from the process environment.
 
 | Variable | Type | Description |
 | --- | --- | --- |
 | `ENVIRONMENT` | string | Deployment environment name, for example `development` or `production` |
 | `DEBUG` | boolean | Enables debug behaviour (`true` / `false`) |
 | `DATABASE_URL` | string | Connection string for the database |
+| `PLAID_TOKEN_ENCRYPTION_KEY` | string | Fernet key used to encrypt Plaid access tokens. Generate with the command in `.env.example`; use a different key per environment |
 
-Example `.env`:
-
-```dotenv
-ENVIRONMENT=development
-DEBUG=true
-DATABASE_URL=<your-database-connection-string>
-```
+See `.env.example` for every variable with a placeholder value.
 
 Never commit `.env` or real credentials.
 
@@ -82,6 +84,17 @@ uv run dev
 | Reload | Automatic on code changes |
 
 The OpenAPI schema is what the frontend uses to generate its API types (see `../frontend/README.md`).
+
+## Code quality
+
+[Ruff](https://docs.astral.sh/ruff/) lints and formats the code. Its settings are in `pyproject.toml`. Run both before every commit:
+
+```powershell
+uv run ruff check .
+uv run ruff format .
+```
+
+`ruff check --fix .` fixes what it safely can (for example import order). Migrations in `alembic/versions/` are excluded on purpose.
 
 ## Database migrations
 
