@@ -32,24 +32,29 @@ uv --version
 
 > **Required.** The backend will not start unless these variables are set. Settings are validated at startup (see `src/autoledge/core/config.py`), so a missing value fails immediately.
 
-Copy `.env.example` to `.env` in the `backend` directory and fill in the values:
+Copy `.env.development.example` to `.env.development` in the `backend` directory and fill in the values:
 
 ```powershell
-Copy-Item .env.example .env
+Copy-Item .env.development.example .env.development
 ```
 
-Variables are loaded from `.env` automatically, or from the process environment.
+`APP_ENV` (set by `uv run dev` / `uv run prod`) picks `.env.development` or `.env.production` from the `backend` folder, wherever the command runs from. Real environment variables override the file.
+
+> Upgrading from a single `.env`? Rename it to `.env.development` and add `SUPABASE_URL`.
 
 | Variable | Type | Description |
 | --- | --- | --- |
-| `ENVIRONMENT` | string | Deployment environment name, for example `development` or `production` |
-| `DEBUG` | boolean | Enables debug behaviour (`true` / `false`) |
-| `DATABASE_URL` | string | Connection string for the database |
-| `PLAID_TOKEN_ENCRYPTION_KEY` | string | Fernet key used to encrypt Plaid access tokens. Generate with the command in `.env.example`; use a different key per environment |
+| `APP_ENV` | string | `development` (default) or `production`. Set by the run scripts; rarely set by hand |
+| `ENVIRONMENT` | string | `development` or `production`; must match `APP_ENV` |
+| `DEBUG` | boolean | Enables debug behaviour (`true` / `false`); must be `false` in production |
+| `DATABASE_URL` | secret | Supabase session pooler connection string (Supabase → Connect → Session pooler); URL-encode special characters in the password |
+| `SUPABASE_URL` | string | Supabase project URL, same as the frontend's `VITE_SUPABASE_URL` |
+| `CORS_ORIGINS` | string | Comma-separated browser origins allowed to call the API. Defaults to the Vite dev server; required in production, with no localhost |
+| `PLAID_TOKEN_ENCRYPTION_KEY` | secret | Fernet key used to encrypt Plaid access tokens. Generate with the command in `.env.development.example`; use a different key per environment |
 
-See `.env.example` for every variable with a placeholder value.
+See `.env.development.example` and `.env.production.example` for every variable with a placeholder value.
 
-Never commit `.env` or real credentials.
+Never commit `.env.development`, `.env.production` or real credentials.
 
 ## Setup
 
@@ -85,6 +90,16 @@ uv run dev
 
 The OpenAPI schema is what the frontend uses to generate its API types (see `../frontend/README.md`).
 
+### Production
+
+```powershell
+uv run prod
+```
+
+Reads `.env.production` or the host's environment variables, binds `0.0.0.0` on port `PORT` (default 8000), no reload.
+
+It refuses to start if `DEBUG=true`, if `ENVIRONMENT` isn't `production`, or if `CORS_ORIGINS` is empty or contains localhost.
+
 ## Code quality
 
 [Ruff](https://docs.astral.sh/ruff/) lints and formats the code. Its settings are in `pyproject.toml`. Run both before every commit:
@@ -99,6 +114,8 @@ uv run ruff format .
 ## Database migrations
 
 The database schema is managed with [Alembic](https://alembic.sqlalchemy.org/). Migrations live in `alembic/versions/` and are the only way the schema changes: never edit tables in the Supabase dashboard. Run every command from the `backend` directory.
+
+Alembic reads the development settings by default. To migrate production, run `$env:APP_ENV = "production"; uv run alembic upgrade head` in a terminal with production values, then `Remove-Item Env:APP_ENV`.
 
 ### Team rules
 
