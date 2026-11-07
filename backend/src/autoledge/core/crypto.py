@@ -2,7 +2,7 @@
 
 Fernet (from the `cryptography` package) gives authenticated symmetric
 encryption: ciphertext can't be read or altered without the key. The key lives
-only in the environment (settings.plaid_token_encryption_key), never in the
+only in the environment (settings.PLAID_TOKEN_ENCRYPTION_KEY), never in the
 database, so a leaked dump or backup doesn't expose working bank access.
 
 Use a different key per environment. If the key is lost, every stored token is

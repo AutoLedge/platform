@@ -9,13 +9,17 @@ settings win over anything on disk. `uv run dev` / `uv run prod` set APP_ENV.
 
 import os
 from pathlib import Path
+from typing import Literal, Self
 
-from pydantic import SecretStr
+from pydantic import SecretStr, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+from autoledge.models.plaid import PlaidEnvironment
 
 # src/autoledge/core/config.py -> parents: core, autoledge, src, backend
 BACKEND_DIR = Path(__file__).resolve().parents[3]
 APP_ENVS = ("development", "production")
+AppEnv = Literal["development", "production"]
 
 
 def _env_file() -> Path:
@@ -35,9 +39,12 @@ def _env_file() -> Path:
 
 
 class Settings(BaseSettings):
-    ENVIRONMENT: str
-    DEBUG: bool
-    DATABASE_URL: str
+    # Which env file was loaded (set by `uv run dev` / `uv run prod`). Must match
+    # ENVIRONMENT inside the file, which catches a production file copied as dev.
+    APP_ENV: AppEnv = "development"
+    ENVIRONMENT: AppEnv
+    DEBUG: bool = False
+    DATABASE_URL: SecretStr
     PLAID_TOKEN_ENCRYPTION_KEY: SecretStr
 
     model_config = SettingsConfigDict(
@@ -45,6 +52,25 @@ class Settings(BaseSettings):
         env_file_encoding="utf-8",
         extra="ignore",
     )
+
+    @property
+    def PLAID_ENVIRONMENT(self) -> PlaidEnvironment:
+        """Sandbox everywhere except production. The Plaid service must refuse
+        a stored token whose plaid_environment differs from this (Data Model)."""
+        if self.ENVIRONMENT == "production":
+            return PlaidEnvironment.PRODUCTION
+        return PlaidEnvironment.SANDBOX
+
+    @model_validator(mode="after")
+    def _check_environment(self) -> Self:
+        if self.ENVIRONMENT != self.APP_ENV:
+            raise ValueError(
+                f"ENVIRONMENT={self.ENVIRONMENT!r} but APP_ENV={self.APP_ENV!r}: "
+                f"backend/.env.{self.APP_ENV} contains another environment's settings."
+            )
+        if self.ENVIRONMENT == "production" and self.DEBUG:
+            raise ValueError("DEBUG must be false in production.")
+        return self
 
 
 settings = Settings()  # pyright: ignore[reportCallIssue]
