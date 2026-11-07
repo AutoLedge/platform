@@ -33,7 +33,7 @@ def include_object(obj, name, type_, reflected, compare_to):
 def run_migrations_offline() -> None:
     """Write SQL to stdout instead of running it (`alembic upgrade head --sql`)."""
     context.configure(
-        url=settings.DATABASE_URL,
+        url=settings.DATABASE_URL.get_secret_value(),
         target_metadata=target_metadata,
         literal_binds=True,
         dialect_opts={"paramstyle": "named"},
@@ -46,7 +46,9 @@ def run_migrations_offline() -> None:
 def run_migrations_online() -> None:
     """Connect to the database and apply migrations."""
     # NullPool: a migration run is one short-lived connection, not a server.
-    engine = create_engine(settings.DATABASE_URL, poolclass=pool.NullPool)
+    engine = create_engine(
+        settings.DATABASE_URL.get_secret_value(), poolclass=pool.NullPool
+    )
 
     with engine.connect() as connection:
         context.configure(
