@@ -56,6 +56,14 @@ See `.env.development.example` and `.env.production.example` for every variable 
 
 Never commit `.env.development`, `.env.production` or real credentials.
 
+### Connection budget
+
+The API connects through Supabase's **session pooler**, where every connection the app holds uses one of the project's database connections (shared with the dashboard, migrations and every other running copy of the app). Each API process holds at most 10 (`pool_size=5` + `max_overflow=5` in `src/autoledge/db/session.py`), so:
+
+> instances × uvicorn workers × 10 must stay well under the project's connection limit (Supabase → Database → Settings).
+
+Raise the pool sizes, or add workers or instances, only after checking that sum.
+
 ## Setup
 
 Run these from the `backend` directory.
