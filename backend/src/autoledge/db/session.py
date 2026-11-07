@@ -14,7 +14,9 @@ engine = create_engine(
     max_overflow=5,  # extra connections allowed under load, closed after use
     pool_recycle=1800,  # replace connections after 30 min, before the pooler
     # or network drops them while idle
-    connect_args={"application_name": "autoledge"},  # label in pg_stat_activity
+    # Label for pg_stat_activity. Only visible on direct or local connections:
+    # through Supabase's session pooler, Postgres shows "Supavisor" instead.
+    connect_args={"application_name": "autoledge"},
 )
 
 SessionLocal = sessionmaker(
