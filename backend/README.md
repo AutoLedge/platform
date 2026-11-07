@@ -8,6 +8,7 @@ Python API for the platform, managed with [uv](https://docs.astral.sh/uv/). The 
 - [Environment variables](#environment-variables)
 - [Setup](#setup)
 - [Running](#running)
+- [API structure and auth](#api-structure-and-auth)
 - [Code quality](#code-quality)
 - [Database migrations](#database-migrations)
 
@@ -107,6 +108,25 @@ uv run prod
 Reads `.env.production` or the host's environment variables, binds `0.0.0.0` on port `PORT` (default 8000), no reload.
 
 It refuses to start if `DEBUG=true`, if `ENVIRONMENT` isn't `production`, or if `CORS_ORIGINS` is empty or contains localhost.
+
+## API structure and auth
+
+- Routes live in `src/autoledge/api/routes/`, one module per resource, each with a `router` included in `src/autoledge/main.py`.
+- Start every new router from `user_router()` or `business_router()` in `src/autoledge/api/routers.py`, so it is protected by default. Plain `APIRouter()` is for public health checks only.
+- Routes get the database session and the signed-in user or business from `src/autoledge/api/deps.py` (`DbSession`, `CurrentUser`, `CurrentBusiness`, `OwnerBusiness`).
+- Auth is a Supabase access token sent as `Authorization: Bearer <token>`, verified against the project's ES256 public keys (no secret is stored).
+
+| Status | When |
+| --- | --- |
+| 401 | No token, or an invalid, expired or anonymous token, or no profile for the user. The frontend signs the user out |
+| 503 | Supabase's key endpoint is unreachable. A server problem, so the user is not signed out |
+| 404 | The caller isn't a member of the business in the path, or no such business exists |
+| 403 | A member who isn't the owner, on an owner-only route |
+
+Two data rules for every route:
+
+1. Ownership ids (`user_id`, `business_id`) come only from the dependencies, never from a request body.
+2. Child rows are looked up by both their own id and `business_id`, so an id from another business is a 404.
 
 ## Code quality
 
