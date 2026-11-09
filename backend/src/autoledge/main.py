@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from autoledge.api.routes import health, me
+from autoledge.api.routes import businesses, health, me
 from autoledge.core.config import settings
 
 app = FastAPI(title="Autoledge API")
@@ -21,3 +21,5 @@ app.add_middleware(
 
 app.include_router(health.router)
 app.include_router(me.router)
+app.include_router(businesses.router)
+app.include_router(businesses.scoped_router)
