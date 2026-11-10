@@ -128,6 +128,18 @@ Two data rules for every route:
 1. Ownership ids (`user_id`, `business_id`) come only from the dependencies, never from a request body.
 2. Child rows are looked up by both their own id and `business_id`, so an id from another business is a 404.
 
+### Endpoints
+
+Routes return `src/autoledge/schemas/` models, never SQLAlchemy models. Request bodies reject unknown fields with 422. Interactive docs are at `/docs` while the server runs.
+
+| Method | Path | Router | Returns |
+| --- | --- | --- | --- |
+| GET | `/`, `/health`, `/health/db` | public | Liveness, and database connectivity (503 if the database is down) |
+| GET | `/me` | user | The caller's profile: `id`, `email`, `full_name` |
+| GET | `/businesses` | user | Only the businesses the caller is a member of, each with `id`, `name` and the caller's `role` |
+| POST | `/businesses` | user | **201** and the new business. Body: `{"name": "..."}` (trimmed, 1–200 characters). The creator becomes the owner; the business and the owner membership are created in one transaction |
+| GET | `/businesses/{business_id}` | business | That business and the caller's `role`. 404 if the caller isn't a member |
+
 ## Code quality
 
 [Ruff](https://docs.astral.sh/ruff/) lints and formats the code. Its settings are in `pyproject.toml`. Run both before every commit:
