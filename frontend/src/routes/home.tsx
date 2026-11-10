@@ -1,17 +1,11 @@
 import { Link, useLoaderData } from 'react-router'
 import type { homeLoader } from '@/routes/business-loaders'
+import ChooseBusiness from '@/routes/choose-business'
 
 export default function Home() {
   const { businesses } = useLoaderData<typeof homeLoader>()
 
-  if (businesses.length === 0) {
-    return (
-      <main className="page-content">
-        <h1>Overview</h1>
-        <p className="page-subtitle">You’re not a member of a business yet.</p>
-      </main>
-    )
-  }
+  if (businesses.length === 0) return <ChooseBusiness />
 
   return (
     <main className="page-content">
