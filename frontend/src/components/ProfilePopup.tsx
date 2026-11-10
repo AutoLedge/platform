@@ -4,7 +4,8 @@ import '@/styles/ProfilePopup.css'
 type ProfilePopupProps = {
   name: string
   email: string
-  onPreferences: () => void
+  /** Omitted when there's no business (Preferences live under /b/:businessId/settings). */
+  onPreferences?: () => void
   onSignOut: () => void
 }
 
@@ -42,14 +43,14 @@ export default function ProfilePopup({ name, email, onPreferences, onSignOut }: 
         className="business-switcher"
         type="button"
         ref={triggerRef}
-        aria-label="Open profile menu for Business Co."
+        aria-label={`Open profile menu for ${name}`}
         aria-haspopup="dialog"
         aria-expanded={isOpen}
         aria-controls="profile-popup"
         onClick={() => setIsOpen((open) => !open)}
       >
-        <span className="avatar" aria-hidden="true">B</span>
-        <span>Business Co.</span>
+        <span className="avatar" aria-hidden="true">{name.charAt(0).toUpperCase()}</span>
+        <span>{name}</span>
       </button>
 
       {isOpen && (
@@ -60,7 +61,9 @@ export default function ProfilePopup({ name, email, onPreferences, onSignOut }: 
           </div>
           <div className="profile-popup-divider" />
           <div className="profile-popup-actions">
-            <button type="button" onClick={() => { closePopup(); onPreferences() }}>Preferences</button>
+            {onPreferences && (
+              <button type="button" onClick={() => { closePopup(); onPreferences() }}>Preferences</button>
+            )}
             <button type="button" onClick={closePopup}>Notifications</button>
           </div>
           <div className="profile-popup-divider" />

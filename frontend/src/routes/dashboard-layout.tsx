@@ -1,5 +1,6 @@
-import { Link, NavLink, Outlet, useLoaderData, useNavigate, useSubmit, type LoaderFunctionArgs } from 'react-router'
+import { Link, NavLink, Outlet, useLoaderData, useNavigate, useParams, useSubmit, type LoaderFunctionArgs } from 'react-router'
 import ProfilePopup from '@/components/ProfilePopup'
+import BusinessSwitcher from '@/components/BusinessSwitcher'
 import DashboardIcon, { type DashboardIconName } from '@/components/DashboardIcon'
 import { sessionContext } from '@/lib/auth'
 
@@ -10,20 +11,20 @@ type DashboardUser = {
 
 type DashboardRoute = {
   label: string
-  path: string
+  path: string // relative to /b/:businessId ('' = Overview)
   icon: DashboardIconName
 }
 
 const primaryRoutes: DashboardRoute[] = [
-  { label: 'Overview (Ahmed)', path: '/', icon: 'overview' },
-  { label: 'Reconciliation (Ahmed)', path: '/reconciliation', icon: 'reconciliation' },
-  { label: 'Transactions (Sebastian)', path: '/transactions', icon: 'transactions' },
-  { label: 'Invoices (Sebastian)', path: '/invoices', icon: 'invoices' },
+  { label: 'Overview (Ahmed)', path: '', icon: 'overview' },
+  { label: 'Reconciliation (Ahmed)', path: 'reconciliation', icon: 'reconciliation' },
+  { label: 'Transactions (Sebastian)', path: 'transactions', icon: 'transactions' },
+  { label: 'Invoices (Sebastian)', path: 'invoices', icon: 'invoices' },
 ]
 
 const secondaryRoutes: DashboardRoute[] = [
-  { label: 'Connections', path: '/connections', icon: 'connections' },
-  { label: 'Settings', path: '/settings', icon: 'settings' },
+  { label: 'Connections', path: 'connections', icon: 'connections' },
+  { label: 'Settings', path: 'settings', icon: 'settings' },
 ]
 
 export async function dashboardLoader({ context }: LoaderFunctionArgs) {
@@ -42,21 +43,34 @@ export async function dashboardLoader({ context }: LoaderFunctionArgs) {
   }
 }
 
-function SidebarLink({ route }: { route: DashboardRoute }) {
+function businessPath(businessId: string, path: string) {
+  return path ? `/b/${businessId}/${path}` : `/b/${businessId}`
+}
+
+function SidebarLink({ route, businessId }: { route: DashboardRoute; businessId: string | undefined }) {
+  const content = <><DashboardIcon name={route.icon} /><span>{route.label}</span></>
+
+  // No business in the URL (home, onboarding): Overview leads home, the rest is dimmed and inert,
+  // so nothing can link to a business page without a business id.
+  if (!businessId) {
+    if (route.path === '') return <Link className="nav-link active" to="/" aria-current="page">{content}</Link>
+    return <span className="nav-link disabled" aria-disabled="true">{content}</span>
+  }
+
   return (
     <NavLink
-      to={route.path}
-      end={route.path === '/'}
+      to={businessPath(businessId, route.path)}
+      end={route.path === ''}
       className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
     >
-      <DashboardIcon name={route.icon} />
-      <span>{route.label}</span>
+      {content}
     </NavLink>
   )
 }
 
 function Sidebar({ user, onSignOut }: { user: DashboardUser; onSignOut: () => void }) {
   const navigate = useNavigate()
+  const { businessId } = useParams()
 
   return (
     <aside className="sidebar">
@@ -65,16 +79,19 @@ function Sidebar({ user, onSignOut }: { user: DashboardUser; onSignOut: () => vo
         <span>AutoLedge</span>
       </Link>
       <nav className="navigation" aria-label="Main navigation">
-        <div className="nav-group">{primaryRoutes.map((route) => <SidebarLink key={route.path} route={route} />)}</div>
+        <div className="nav-group">{primaryRoutes.map((route) => <SidebarLink key={route.path} route={route} businessId={businessId} />)}</div>
         <div className="nav-divider" />
-        <div className="nav-group">{secondaryRoutes.map((route) => <SidebarLink key={route.path} route={route} />)}</div>
+        <div className="nav-group">{secondaryRoutes.map((route) => <SidebarLink key={route.path} route={route} businessId={businessId} />)}</div>
       </nav>
-      <ProfilePopup
-        name={user.name}
-        email={user.email}
-        onPreferences={() => navigate('/settings')}
-        onSignOut={onSignOut}
-      />
+      <div className="sidebar-footer">
+        <BusinessSwitcher currentId={businessId} />
+        <ProfilePopup
+          name={user.name}
+          email={user.email}
+          onPreferences={businessId ? () => navigate(businessPath(businessId, 'settings')) : undefined}
+          onSignOut={onSignOut}
+        />
+      </div>
     </aside>
   )
 }

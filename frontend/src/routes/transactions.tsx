@@ -292,7 +292,7 @@ export default function Transactions() {
                         {transaction.invoiceNumber && (
                           <Link
                             className="invoice-link"
-                            to={`/invoices?invoice=${encodeURIComponent(transaction.invoiceNumber)}`}
+                            to={`../invoices?invoice=${encodeURIComponent(transaction.invoiceNumber)}`}
                             title={`View invoice ${transaction.invoiceNumber}`}
                           >
                             {transaction.invoiceNumber}
