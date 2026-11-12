@@ -52,6 +52,12 @@ Copy-Item .env.development.example .env.development
 | `SUPABASE_URL` | string | Supabase project URL, same as the frontend's `VITE_SUPABASE_URL` |
 | `CORS_ORIGINS` | string | Comma-separated browser origins allowed to call the API. Defaults to the Vite dev server; required in production, with no localhost |
 | `PLAID_TOKEN_ENCRYPTION_KEY` | secret | Fernet key used to encrypt Plaid access tokens. Generate with the command in `.env.development.example`; use a different key per environment |
+| `PLAID_CLIENT_ID` | string | Plaid client id (Plaid Dashboard → Keys); the same in every environment |
+| `PLAID_SECRET` | secret | Plaid secret for this environment: the **Sandbox** secret in development, the Production secret in production |
+| `PLAID_COUNTRY_CODES` | string | Comma-separated countries offered in Plaid Link. Defaults to `CA,US` |
+| `PLAID_WEBHOOK_URL` | string | Where Plaid sends webhooks; `https://` only. Leave unset in day-to-day development |
+
+Sandbox keys come from the [Plaid Dashboard](https://dashboard.plaid.com/developers/keys)'s **Keys** page: copy the client id and the Sandbox secret into `.env.development`. Development always talks to Plaid Sandbox.
 
 See `.env.development.example` and `.env.production.example` for every variable with a placeholder value.
 
