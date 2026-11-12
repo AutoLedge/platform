@@ -6,18 +6,29 @@ see plaid-python types, access tokens or Plaid errors directly.
 
 import json
 import logging
+import uuid
 from collections.abc import Callable
+from datetime import datetime
 from functools import lru_cache
 from typing import Any
 
 import plaid
 from plaid.api import plaid_api
+from plaid.model.country_code import CountryCode
+from plaid.model.link_token_create_request import LinkTokenCreateRequest
+from plaid.model.link_token_create_request_user import LinkTokenCreateRequestUser
+from plaid.model.link_token_transactions import LinkTokenTransactions
+from plaid.model.products import Products
 
 from autoledge.core.config import settings
 from autoledge.core.crypto import decrypt_access_token
 from autoledge.models import PlaidEnvironment, PlaidItem
 
 logger = logging.getLogger(__name__)
+
+# Days of transaction history to request when an item is linked (decision Q2).
+# Set at link time only: it can't be raised for an item afterwards.
+TRANSACTIONS_DAYS_REQUESTED = 180
 
 
 class PlaidServiceError(Exception):
@@ -114,3 +125,22 @@ def _call[T](fn: Callable[[Any], T], request: Any) -> T:
         )
         # from None: the ApiException's text includes the response body.
         raise PlaidServiceError(error_code, error_type, request_id) from None
+
+
+def create_link_token(*, user_id: uuid.UUID) -> tuple[str, datetime]:
+    """A Link token for this user: transactions, the configured countries,
+    180 days of history. Returns (link_token, expiration)."""
+    kwargs: dict[str, Any] = {}
+    if settings.PLAID_WEBHOOK_URL:
+        kwargs["webhook"] = settings.PLAID_WEBHOOK_URL
+    request = LinkTokenCreateRequest(
+        client_name="AutoLedge",
+        language="en",
+        country_codes=[CountryCode(code) for code in settings.PLAID_COUNTRY_CODES],
+        user=LinkTokenCreateRequestUser(client_user_id=str(user_id)),
+        products=[Products("transactions")],
+        transactions=LinkTokenTransactions(days_requested=TRANSACTIONS_DAYS_REQUESTED),
+        **kwargs,
+    )
+    response = _call(client().link_token_create, request)
+    return response.link_token, response.expiration
