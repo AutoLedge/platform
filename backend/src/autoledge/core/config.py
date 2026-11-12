@@ -56,6 +56,20 @@ class Settings(BaseSettings):
     # comma-separated list: http://localhost:5173,https://app.example.com
     CORS_ORIGINS: Annotated[list[str], NoDecode] = ["http://localhost:5173"]
 
+    # Plaid API credentials (Dashboard → Keys). The client id is the same in every
+    # environment; the secret is per environment, so .env.development holds the
+    # Sandbox secret and production holds the Production one.
+    PLAID_CLIENT_ID: str
+    PLAID_SECRET: SecretStr
+
+    # Countries offered in Plaid Link (decision Q1). Comma-separated in env files.
+    PLAID_COUNTRY_CODES: Annotated[list[str], NoDecode] = ["CA", "US"]
+
+    # Where Plaid sends webhooks (N16). Unset during day-to-day development
+    # (decision Q3: hybrid); set only while testing webhooks through a tunnel,
+    # and in production. Must be https.
+    PLAID_WEBHOOK_URL: str | None = None
+
     model_config = SettingsConfigDict(
         env_file=_env_file(),
         env_file_encoding="utf-8",
@@ -87,6 +101,28 @@ class Settings(BaseSettings):
     def _split_origins(cls, value: object) -> object:
         if isinstance(value, str):
             return [o.strip().rstrip("/") for o in value.split(",") if o.strip()]
+        return value
+
+    @field_validator("PLAID_COUNTRY_CODES", mode="before")
+    @classmethod
+    def _split_country_codes(cls, value: object) -> object:
+        if isinstance(value, str):
+            value = value.split(",")
+        if isinstance(value, list):
+            value = [str(c).strip().upper() for c in value if str(c).strip()]
+            if not value:
+                raise ValueError("PLAID_COUNTRY_CODES must list at least one country.")
+        return value
+
+    @field_validator("PLAID_WEBHOOK_URL", mode="before")
+    @classmethod
+    def _check_webhook_url(cls, value: object) -> object:
+        if isinstance(value, str):
+            value = value.strip()
+            if not value:
+                return None
+            if not value.startswith("https://"):
+                raise ValueError("PLAID_WEBHOOK_URL must start with https://.")
         return value
 
     @model_validator(mode="after")

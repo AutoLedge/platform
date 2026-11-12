@@ -20,6 +20,13 @@ from autoledge.core.config import settings
 ALGORITHMS = ["ES256"]
 AUDIENCE = "authenticated"
 
+# Allowed clock difference between this server and Supabase. Without it, a
+# server clock even a second behind rejects freshly issued tokens ("not yet
+# valid (iat)"), and the frontend signs the user out right after sign-in. It
+# also accepts a token up to this long after `exp`, which is harmless at 30 s
+# against Supabase's default one-hour token lifetime.
+CLOCK_SKEW_LEEWAY_SECONDS = 30
+
 
 class InvalidTokenError(Exception):
     """The token is missing a claim, expired, wrongly signed, or not for us."""
@@ -57,6 +64,7 @@ def verify_access_token(token: str) -> TokenClaims:
             algorithms=ALGORITHMS,
             audience=AUDIENCE,
             issuer=_issuer(),
+            leeway=CLOCK_SKEW_LEEWAY_SECONDS,
             options={"require": ["exp", "sub", "aud", "iss"]},
         )
     except jwt.exceptions.PyJWKClientConnectionError as exc:

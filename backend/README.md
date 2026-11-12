@@ -9,6 +9,7 @@ Python API for the platform, managed with [uv](https://docs.astral.sh/uv/). The 
 - [Setup](#setup)
 - [Running](#running)
 - [API structure and auth](#api-structure-and-auth)
+- [Plaid (Sandbox)](#plaid-sandbox)
 - [Code quality](#code-quality)
 - [Database migrations](#database-migrations)
 
@@ -52,6 +53,12 @@ Copy-Item .env.development.example .env.development
 | `SUPABASE_URL` | string | Supabase project URL, same as the frontend's `VITE_SUPABASE_URL` |
 | `CORS_ORIGINS` | string | Comma-separated browser origins allowed to call the API. Defaults to the Vite dev server; required in production, with no localhost |
 | `PLAID_TOKEN_ENCRYPTION_KEY` | secret | Fernet key used to encrypt Plaid access tokens. Generate with the command in `.env.development.example`; use a different key per environment |
+| `PLAID_CLIENT_ID` | string | Plaid client id (Plaid Dashboard → Keys); the same in every environment |
+| `PLAID_SECRET` | secret | Plaid secret for this environment: the **Sandbox** secret in development, the Production secret in production |
+| `PLAID_COUNTRY_CODES` | string | Comma-separated countries offered in Plaid Link. Defaults to `CA,US` |
+| `PLAID_WEBHOOK_URL` | string | Where Plaid sends webhooks; `https://` only. Leave unset in day-to-day development |
+
+Sandbox keys come from the [Plaid Dashboard](https://dashboard.plaid.com/developers/keys)'s **Keys** page: copy the client id and the Sandbox secret into `.env.development`. Development always talks to Plaid Sandbox.
 
 See `.env.development.example` and `.env.production.example` for every variable with a placeholder value.
 
@@ -122,6 +129,11 @@ It refuses to start if `DEBUG=true`, if `ENVIRONMENT` isn't `production`, or if 
 | 503 | Supabase's key endpoint is unreachable. A server problem, so the user is not signed out |
 | 404 | The caller isn't a member of the business in the path, or no such business exists |
 | 403 | A member who isn't the owner, on an owner-only route |
+| 400 | Plaid Link's public token is invalid or expired: open Link again |
+| 409 | A conflict: the bank is already connected to this business, or a connection belongs to another Plaid environment |
+| 502 | Plaid failed or is unreachable. The detail is generic; Plaid's error codes are only logged |
+
+Plaid responses never include access tokens, Plaid's own item or account ids, or sync cursors: `id` is always AutoLedge's id.
 
 Two data rules for every route:
 
@@ -139,6 +151,21 @@ Routes return `src/autoledge/schemas/` models, never SQLAlchemy models. Request 
 | GET | `/businesses` | user | Only the businesses the caller is a member of, each with `id`, `name` and the caller's `role` |
 | POST | `/businesses` | user | **201** and the new business. Body: `{"name": "..."}` (trimmed, 1–200 characters). The creator becomes the owner; the business and the owner membership are created in one transaction |
 | GET | `/businesses/{business_id}` | business | That business and the caller's `role`. 404 if the caller isn't a member |
+| POST | `/businesses/{business_id}/plaid/link-token` | owner | A Plaid Link token (`link_token`, `expiration`) for CA and US institutions with 180 days of history. 403 for members, 502 if Plaid fails |
+| POST | `/businesses/{business_id}/plaid/items` | owner | **201** and the new connection with its accounts. Body: `{"public_token": "...", "institution_id": "..."}` from Link's `onSuccess` (`institution_id` optional). 400 expired or invalid public token, 403 for members, 409 bank already connected, 502 if Plaid fails. A failure after the exchange removes the item at Plaid again |
+| GET | `/businesses/{business_id}/plaid/items` | business | The business's connections, newest first, each with `status` (`ok` / `needs_attention`) and its accounts |
+| GET | `/businesses/{business_id}/accounts` | business | Every account of the business, including inactive ones from removed connections (`connected: false`). Connected accounts first, then by name |
+| DELETE | `/businesses/{business_id}/plaid/items/{item_id}` | owner | **204**. Removes the connection at Plaid and here; its accounts and transactions stay, marked inactive. 403 for members, 404 unknown connection or another business's, 409 connection from another Plaid environment, 502 if Plaid fails (nothing changes) |
+
+## Plaid (Sandbox)
+
+Bank connections go through [Plaid](https://plaid.com/docs/). All Plaid calls live in `src/autoledge/services/plaid.py`; routes never touch the SDK or access tokens directly.
+
+- **Keys:** put `PLAID_CLIENT_ID` and the **Sandbox** `PLAID_SECRET` from the Plaid Dashboard's Keys page in `.env.development` (see [Environment variables](#environment-variables)).
+- **Sandbox only in development.** The Plaid environment follows `ENVIRONMENT`: Sandbox unless it is `production`. Every stored connection records its environment, and a token from another environment is refused (409).
+- **Test logins** in Plaid Link: `user_good` / `pass_good` (for example with *First Platypus Bank*, a non-OAuth institution). Use `user_small_business` for demo data.
+- **Webhooks stay off day to day:** leave `PLAID_WEBHOOK_URL` unset. Testing webhooks through a tunnel is covered in N16.
+- Access tokens are stored only encrypted (`PLAID_TOKEN_ENCRYPTION_KEY`) and never returned or logged.
 
 ## Code quality
 

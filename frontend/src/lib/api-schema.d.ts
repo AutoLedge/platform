@@ -110,10 +110,125 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/businesses/{business_id}/plaid/link-token": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Create Link Token
+         * @description A short-lived Plaid Link token for connecting a bank to this business.
+         */
+        post: operations["create_link_token_businesses__business_id__plaid_link_token_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/businesses/{business_id}/plaid/items": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Items
+         * @description The business's bank connections, newest first, each with its accounts.
+         */
+        get: operations["list_items_businesses__business_id__plaid_items_get"];
+        put?: never;
+        /**
+         * Create Item
+         * @description Store a bank connection from Plaid Link's public token, with its accounts.
+         *
+         *     Every item exchanged at Plaid is either stored here or removed at Plaid,
+         *     so a failure never leaves a billed orphan behind.
+         */
+        post: operations["create_item_businesses__business_id__plaid_items_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/businesses/{business_id}/plaid/items/{item_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /**
+         * Delete Item
+         * @description Remove a connection at Plaid and here. Its accounts and their
+         *     transactions stay, marked inactive and detached from the connection.
+         */
+        delete: operations["delete_item_businesses__business_id__plaid_items__item_id__delete"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/businesses/{business_id}/accounts": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Accounts
+         * @description Connected accounts first, then by name.
+         */
+        get: operations["list_accounts_businesses__business_id__accounts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        /**
+         * AccountResponse
+         * @description One bank account. Never includes Plaid's account id.
+         */
+        AccountResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Name */
+            name: string;
+            /** Mask */
+            mask: string | null;
+            /** Type */
+            type: string;
+            /** Currency */
+            currency: string | null;
+            /** Current Balance */
+            current_balance: string | null;
+            /** Balance As Of */
+            balance_as_of: string | null;
+            /** Connected */
+            connected: boolean;
+            /** Inactive Since */
+            inactive_since: string | null;
+        };
         /**
          * BusinessCreate
          * @description Body of POST /businesses. The creator becomes the owner: the owner is
@@ -144,10 +259,69 @@ export interface components {
             detail?: components["schemas"]["ValidationError"][];
         };
         /**
+         * LinkTokenResponse
+         * @description A Plaid Link token for the frontend to open Link with. Short-lived.
+         */
+        LinkTokenResponse: {
+            /** Link Token */
+            link_token: string;
+            /**
+             * Expiration
+             * Format: date-time
+             */
+            expiration: string;
+        };
+        /**
          * MembershipRole
          * @enum {string}
          */
         MembershipRole: "owner" | "member";
+        /**
+         * PlaidItemCreate
+         * @description Body of POST …/plaid/items, from Plaid Link's onSuccess.
+         *     institution_id is Link metadata, used only to refuse an obvious duplicate
+         *     before exchanging; Plaid's own /item/get is the source of truth after.
+         */
+        PlaidItemCreate: {
+            /** Public Token */
+            public_token: string;
+            /** Institution Id */
+            institution_id?: string | null;
+        };
+        /**
+         * PlaidItemResponse
+         * @description One bank connection and its accounts. `id` is AutoLedge's id, never
+         *     Plaid's item_id; no token or sync cursor is ever included.
+         */
+        PlaidItemResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /** Institution Id */
+            institution_id: string | null;
+            /** Institution Name */
+            institution_name: string | null;
+            /**
+             * Status
+             * @enum {string}
+             */
+            status: "ok" | "needs_attention";
+            /** Needs Update Reason */
+            needs_update_reason: string | null;
+            /** History Complete */
+            history_complete: boolean;
+            /** Last Synced At */
+            last_synced_at: string | null;
+            /**
+             * Created At
+             * Format: date-time
+             */
+            created_at: string;
+            /** Accounts */
+            accounts: components["schemas"]["AccountResponse"][];
+        };
         /**
          * ProfileResponse
          * @description The signed-in user's own profile.
@@ -342,6 +516,164 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["BusinessResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_link_token_businesses__business_id__plaid_link_token_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                business_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LinkTokenResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_items_businesses__business_id__plaid_items_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                business_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaidItemResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    create_item_businesses__business_id__plaid_items_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                business_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlaidItemCreate"];
+            };
+        };
+        responses: {
+            /** @description Successful Response */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlaidItemResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    delete_item_businesses__business_id__plaid_items__item_id__delete: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+                business_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_accounts_businesses__business_id__accounts_get: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                business_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountResponse"][];
                 };
             };
             /** @description Validation Error */
