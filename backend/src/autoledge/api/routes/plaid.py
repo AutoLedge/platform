@@ -2,6 +2,8 @@
 
 POST /businesses/{business_id}/plaid/link-token   owner: start Plaid Link
 POST /businesses/{business_id}/plaid/items        owner: store a connection
+GET  /businesses/{business_id}/plaid/items        member: list connections
+DELETE /businesses/{business_id}/plaid/items/{id} owner: remove a connection
 
 Plaid failures are logged by the service (codes only) and reported to the
 client as a generic 502, so no Plaid detail reaches the browser.
@@ -13,9 +15,9 @@ from datetime import UTC, datetime
 
 from fastapi import HTTPException, status
 from sqlalchemy import select
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, selectinload
 
-from autoledge.api.deps import CurrentUser, DbSession, OwnerBusiness
+from autoledge.api.deps import CurrentBusiness, CurrentUser, DbSession, OwnerBusiness
 from autoledge.api.routers import business_router
 from autoledge.core.config import settings
 from autoledge.core.crypto import encrypt_access_token
@@ -218,3 +220,45 @@ def create_item(
 
     item = db.get_one(PlaidItem, item_id)
     return item_response(item)
+
+
+@router.get("/plaid/items")
+def list_items(ctx: CurrentBusiness, db: DbSession) -> list[PlaidItemResponse]:
+    """The business's bank connections, newest first, each with its accounts."""
+    items = db.scalars(
+        select(PlaidItem)
+        .where(PlaidItem.business_id == ctx.business.id)
+        .options(selectinload(PlaidItem.accounts))
+        .order_by(PlaidItem.created_at.desc(), PlaidItem.id)
+    ).all()
+    return [item_response(item) for item in items]
+
+
+@router.delete("/plaid/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_item(item_id: uuid.UUID, ctx: OwnerBusiness, db: DbSession) -> None:
+    """Remove a connection at Plaid and here. Its accounts and their
+    transactions stay, marked inactive and detached from the connection."""
+    item = db.scalar(
+        select(PlaidItem)
+        .where(PlaidItem.id == item_id, PlaidItem.business_id == ctx.business.id)
+        .options(selectinload(PlaidItem.accounts))
+    )
+    if item is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Connection not found")
+
+    # Plaid first: if it fails, nothing changes here and the owner can retry.
+    try:
+        plaid_service.remove_item(plaid_service.access_token_for(item))
+    except (
+        plaid_service.PlaidEnvironmentMismatch,
+        plaid_service.PlaidServiceError,
+    ) as exc:
+        raise (_plaid_error(exc) or _unavailable()) from exc
+
+    # Before the delete: ON DELETE SET NULL then detaches the accounts.
+    now = datetime.now(UTC)
+    for account in item.accounts:
+        account.inactive_since = now
+    db.flush()
+    db.delete(item)
+    db.commit()
