@@ -2,10 +2,9 @@
 
 Two halves:
 
-1. The pure half, with no database and no network, unit-tested in
-   tests/test_plaid_sync.py: collect_changes() pages through Plaid and nets all
-   pages into one change set; transaction_values() maps a Plaid transaction to
-   `transactions` columns.
+1. The pure half, with no database and no network: collect_changes() pages
+   through Plaid and nets all pages into one change set; transaction_values()
+   maps a Plaid transaction to `transactions` columns.
 2. sync_item(): locks the item, applies the change set in one DB transaction,
    then saves the cursor in the same commit.
 
