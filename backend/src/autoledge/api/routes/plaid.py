@@ -293,7 +293,7 @@ def sync_item(item_id: uuid.UUID, ctx: CurrentBusiness, db: DbSession) -> SyncRe
         added=result.added,
         modified=result.modified,
         removed=result.removed,
-        item=item_response(item), # type: ignore
+        item=item_response(item),  # type: ignore
     )
 
 
