@@ -157,6 +157,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/businesses/{business_id}/plaid/items/{item_id}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync Item
+         * @description Pull this connection's new, changed and removed transactions from Plaid
+         *     now. Any member can refresh
+         */
+        post: operations["sync_item_businesses__business_id__plaid_items__item_id__sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/businesses/{business_id}/plaid/items/{item_id}": {
         parameters: {
             query?: never;
@@ -190,6 +211,30 @@ export interface paths {
          * @description Connected accounts first, then by name.
          */
         get: operations["list_accounts_businesses__business_id__accounts_get"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/businesses/{business_id}/transactions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * List Transactions
+         * @description The business's live transactions, newest first (date, then id).
+         *
+         *     `from` / `to` are inclusive dates; `q` is a case-insensitive substring of
+         *     the description or merchant name. Pass `next_cursor` back as `cursor` for
+         *     the next page.
+         */
+        get: operations["list_transactions_businesses__business_id__transactions_get"];
         put?: never;
         post?: never;
         delete?: never;
@@ -336,6 +381,64 @@ export interface components {
             email: string;
             /** Full Name */
             full_name: string | null;
+        };
+        /**
+         * SyncResponse
+         * @description Result of a manual sync: Plaid's change counts and the connection after it.
+         */
+        SyncResponse: {
+            /** Added */
+            added: number;
+            /** Modified */
+            modified: number;
+            /** Removed */
+            removed: number;
+            item: components["schemas"]["PlaidItemResponse"];
+        };
+        /** TransactionPage */
+        TransactionPage: {
+            /** Items */
+            items: components["schemas"]["TransactionResponse"][];
+            /** Next Cursor */
+            next_cursor: string | null;
+        };
+        /**
+         * TransactionResponse
+         * @description One live bank transaction. amount keeps Plaid's sign: positive = money
+         *     out of the account, negative = money in. Never includes Plaid's ids.
+         */
+        TransactionResponse: {
+            /**
+             * Id
+             * Format: uuid
+             */
+            id: string;
+            /**
+             * Account Id
+             * Format: uuid
+             */
+            account_id: string;
+            /** Account Name */
+            account_name: string;
+            /** Account Mask */
+            account_mask: string | null;
+            /** Amount */
+            amount: string;
+            /** Currency */
+            currency: string | null;
+            /**
+             * Date
+             * Format: date
+             */
+            date: string;
+            /** Pending */
+            pending: boolean;
+            /** Description */
+            description: string;
+            /** Merchant Name */
+            merchant_name: string | null;
+            /** Category */
+            category: string | null;
         };
         /** ValidationError */
         ValidationError: {
@@ -626,6 +729,38 @@ export interface operations {
             };
         };
     };
+    sync_item_businesses__business_id__plaid_items__item_id__sync_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+                business_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
     delete_item_businesses__business_id__plaid_items__item_id__delete: {
         parameters: {
             query?: never;
@@ -674,6 +809,45 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AccountResponse"][];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    list_transactions_businesses__business_id__transactions_get: {
+        parameters: {
+            query?: {
+                from?: string | null;
+                to?: string | null;
+                account_id?: string | null;
+                pending?: boolean | null;
+                q?: string | null;
+                limit?: number;
+                cursor?: string | null;
+            };
+            header?: never;
+            path: {
+                business_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransactionPage"];
                 };
             };
             /** @description Validation Error */
