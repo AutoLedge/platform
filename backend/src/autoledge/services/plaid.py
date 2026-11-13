@@ -8,6 +8,7 @@ import json
 import logging
 import uuid
 from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime
 from decimal import Decimal
 from functools import lru_cache
@@ -27,6 +28,10 @@ from plaid.model.link_token_create_request import LinkTokenCreateRequest
 from plaid.model.link_token_create_request_user import LinkTokenCreateRequestUser
 from plaid.model.link_token_transactions import LinkTokenTransactions
 from plaid.model.products import Products
+from plaid.model.transactions_sync_request import TransactionsSyncRequest
+from plaid.model.transactions_sync_request_options import (
+    TransactionsSyncRequestOptions,
+)
 
 from autoledge.core.config import settings
 from autoledge.core.crypto import decrypt_access_token
@@ -37,6 +42,8 @@ logger = logging.getLogger(__name__)
 # Days of transaction history to request when an item is linked (decision Q2).
 # Set at link time only: it can't be raised for an item afterwards.
 TRANSACTIONS_DAYS_REQUESTED = 180
+
+SYNC_PAGE_SIZE = 500  # Plaid's maximum per /transactions/sync call
 
 
 class PlaidServiceError(Exception):
@@ -196,23 +203,25 @@ def _decimal(value: float | None) -> Decimal | None:
     return None if value is None else Decimal(str(value))
 
 
+def _account_values(account: Any) -> dict[str, Any]:
+    """A Plaid account as plain values: account_id, name, mask, type,
+    iso_currency_code, current (Decimal)."""
+    return {
+        "account_id": account.account_id,
+        "name": account.name,
+        "mask": account.get("mask"),
+        "type": _enum_value(account.type),
+        "iso_currency_code": account.balances.get("iso_currency_code"),
+        "current": _decimal(account.balances.get("current")),
+    }
+
+
 def get_accounts(access_token: str) -> list[dict[str, Any]]:
-    """The item's accounts from /accounts/get, as plain values:
-    account_id, name, mask, type, iso_currency_code, current (Decimal)."""
+    """The item's accounts from /accounts/get, as _account_values() dicts."""
     response = _call(
         client().accounts_get, AccountsGetRequest(access_token=access_token)
     )
-    return [
-        {
-            "account_id": account.account_id,
-            "name": account.name,
-            "mask": account.get("mask"),
-            "type": _enum_value(account.type),
-            "iso_currency_code": account.balances.get("iso_currency_code"),
-            "current": _decimal(account.balances.get("current")),
-        }
-        for account in response.accounts
-    ]
+    return [_account_values(account) for account in response.accounts]
 
 
 def remove_item(access_token: str) -> None:
@@ -224,3 +233,59 @@ def remove_item(access_token: str) -> None:
         if exc.error_code != "ITEM_NOT_FOUND":
             raise
     logger.info("Plaid item removed")
+
+
+@dataclass(frozen=True)
+class SyncPage:
+    """One /transactions/sync response as plain values (no SDK types)."""
+
+    added: list[dict[str, Any]]  # _transaction_values() dicts
+    modified: list[dict[str, Any]]
+    removed: list[str]  # Plaid transaction ids
+    accounts: list[dict[str, Any]]  # same shape as get_accounts()
+    next_cursor: str  # "" when Plaid has nothing ready yet
+    has_more: bool
+    update_status: str | None  # transactions_update_status, e.g. NOT_READY
+
+
+def _transaction_values(txn: Any) -> dict[str, Any]:
+    """A Plaid transaction as plain values, under Plaid's own field names.
+    amount keeps Plaid's sign (positive = money out)."""
+    category = txn.get("personal_finance_category")
+    return {
+        "transaction_id": txn.transaction_id,
+        "account_id": txn.account_id,
+        "amount": _decimal(txn.amount),
+        "iso_currency_code": txn.get("iso_currency_code"),
+        "date": txn.date,
+        "pending": txn.pending,
+        "name": txn.get("name"),
+        "original_description": txn.get("original_description"),
+        "merchant_name": txn.get("merchant_name"),
+        "category": category.get("detailed") if category else None,
+    }
+
+
+def sync_transactions_page(access_token: str, cursor: str | None) -> SyncPage:
+    """One page of /transactions/sync after `cursor` (from the beginning when
+    the cursor is None or empty)."""
+    kwargs: dict[str, Any] = {}
+    if cursor:  # omitted = from the beginning; None or "" must not be sent
+        kwargs["cursor"] = cursor
+    request = TransactionsSyncRequest(
+        access_token=access_token,
+        count=SYNC_PAGE_SIZE,
+        options=TransactionsSyncRequestOptions(include_original_description=True),
+        **kwargs,
+    )
+    response = _call(client().transactions_sync, request)
+    status = response.get("transactions_update_status")
+    return SyncPage(
+        added=[_transaction_values(t) for t in response.added],
+        modified=[_transaction_values(t) for t in response.modified],
+        removed=[r.transaction_id for r in response.removed],
+        accounts=[_account_values(a) for a in response.accounts],
+        next_cursor=response.next_cursor,
+        has_more=response.has_more,
+        update_status=_enum_value(status) if status is not None else None,
+    )

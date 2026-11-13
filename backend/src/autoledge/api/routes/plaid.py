@@ -1,8 +1,11 @@
 """Bank connections through Plaid, for one business.
 
 POST /businesses/{business_id}/plaid/link-token   owner: start Plaid Link
-POST /businesses/{business_id}/plaid/items        owner: store a connection
+POST /businesses/{business_id}/plaid/items        owner: store a connection,
+                                                  then run its first sync
 GET  /businesses/{business_id}/plaid/items        member: list connections
+POST /businesses/{business_id}/plaid/items/{id}/sync
+                                                  member: sync one connection now
 DELETE /businesses/{business_id}/plaid/items/{id} owner: remove a connection
 
 Plaid failures are logged by the service (codes only) and reported to the
@@ -27,8 +30,10 @@ from autoledge.schemas.plaid import (
     LinkTokenResponse,
     PlaidItemCreate,
     PlaidItemResponse,
+    SyncResponse,
 )
 from autoledge.services import plaid as plaid_service
+from autoledge.services import plaid_sync
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +43,9 @@ SERVICE_UNAVAILABLE = "Bank connection service unavailable"
 ALREADY_CONNECTED = "This bank is already connected"
 LINK_EXPIRED = "Bank connection expired, try again"
 WRONG_ENVIRONMENT = "This connection belongs to another Plaid environment"
+CONNECTION_NOT_FOUND = "Connection not found"
+SYNC_RUNNING = "A sync is already running for this connection"
+NEEDS_RECONNECT = "This connection needs to be reconnected"
 
 
 def _unavailable() -> HTTPException:
@@ -218,8 +226,26 @@ def create_item(
             raise http_error from exc
         raise
 
+    _first_sync(db, item_id)
     item = db.get_one(PlaidItem, item_id)
     return item_response(item)
+
+
+def _first_sync(db: Session, item_id: uuid.UUID) -> None:
+    """Sync a just-stored connection so it shows transactions straight away.
+
+    Best effort: the connection is stored and stays even if this fails; the
+    owner can Refresh later (and N16's webhook will catch up).
+    """
+    try:
+        item = db.get_one(PlaidItem, item_id)
+        plaid_sync.sync_item(db, item)
+    except Exception as exc:
+        logger.warning(
+            "First sync failed: %s error_code=%s",
+            type(exc).__name__,
+            getattr(exc, "error_code", None),
+        )
 
 
 @router.get("/plaid/items")
@@ -234,6 +260,43 @@ def list_items(ctx: CurrentBusiness, db: DbSession) -> list[PlaidItemResponse]:
     return [item_response(item) for item in items]
 
 
+@router.post("/plaid/items/{item_id}/sync")
+def sync_item(item_id: uuid.UUID, ctx: CurrentBusiness, db: DbSession) -> SyncResponse:
+    """Pull this connection's new, changed and removed transactions from Plaid
+    now. Any member can refresh"""
+    item = db.scalar(
+        select(PlaidItem).where(
+            PlaidItem.id == item_id, PlaidItem.business_id == ctx.business.id
+        )
+    )
+    if item is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=CONNECTION_NOT_FOUND)
+
+    try:
+        result = plaid_sync.sync_item(db, item)
+    except plaid_sync.SyncAlreadyRunning as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail=SYNC_RUNNING) from exc
+    except plaid_sync.ItemNeedsUpdate as exc:
+        raise HTTPException(status.HTTP_409_CONFLICT, detail=NEEDS_RECONNECT) from exc
+    except (
+        plaid_service.PlaidEnvironmentMismatch,
+        plaid_service.PlaidServiceError,
+    ) as exc:
+        raise (_plaid_error(exc) or _unavailable()) from exc
+
+    item = db.scalar(
+        select(PlaidItem)
+        .where(PlaidItem.id == item_id)
+        .options(selectinload(PlaidItem.accounts))
+    )
+    return SyncResponse(
+        added=result.added,
+        modified=result.modified,
+        removed=result.removed,
+        item=item_response(item), # type: ignore
+    )
+
+
 @router.delete("/plaid/items/{item_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_item(item_id: uuid.UUID, ctx: OwnerBusiness, db: DbSession) -> None:
     """Remove a connection at Plaid and here. Its accounts and their
@@ -244,7 +307,7 @@ def delete_item(item_id: uuid.UUID, ctx: OwnerBusiness, db: DbSession) -> None:
         .options(selectinload(PlaidItem.accounts))
     )
     if item is None:
-        raise HTTPException(status.HTTP_404_NOT_FOUND, detail="Connection not found")
+        raise HTTPException(status.HTTP_404_NOT_FOUND, detail=CONNECTION_NOT_FOUND)
 
     # Plaid first: if it fails, nothing changes here and the owner can retry.
     try:

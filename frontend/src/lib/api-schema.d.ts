@@ -157,6 +157,27 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/businesses/{business_id}/plaid/items/{item_id}/sync": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Sync Item
+         * @description Pull this connection's new, changed and removed transactions from Plaid
+         *     now. Any member can refresh (decision Q4).
+         */
+        post: operations["sync_item_businesses__business_id__plaid_items__item_id__sync_post"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/businesses/{business_id}/plaid/items/{item_id}": {
         parameters: {
             query?: never;
@@ -336,6 +357,19 @@ export interface components {
             email: string;
             /** Full Name */
             full_name: string | null;
+        };
+        /**
+         * SyncResponse
+         * @description Result of a manual sync: Plaid's change counts and the connection after it.
+         */
+        SyncResponse: {
+            /** Added */
+            added: number;
+            /** Modified */
+            modified: number;
+            /** Removed */
+            removed: number;
+            item: components["schemas"]["PlaidItemResponse"];
         };
         /** ValidationError */
         ValidationError: {
@@ -613,6 +647,38 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlaidItemResponse"];
+                };
+            };
+            /** @description Validation Error */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HTTPValidationError"];
+                };
+            };
+        };
+    };
+    sync_item_businesses__business_id__plaid_items__item_id__sync_post: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                item_id: string;
+                business_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Successful Response */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SyncResponse"];
                 };
             };
             /** @description Validation Error */

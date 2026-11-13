@@ -53,3 +53,12 @@ class PlaidItemResponse(BaseModel):
     last_synced_at: datetime | None
     created_at: datetime
     accounts: list[AccountResponse]
+
+
+class SyncResponse(BaseModel):
+    """Result of a manual sync: Plaid's change counts and the connection after it."""
+
+    added: int
+    modified: int
+    removed: int
+    item: PlaidItemResponse
