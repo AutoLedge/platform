@@ -8,18 +8,45 @@ import { invalidateBankData } from "@/queries/plaid";
 
 export type PlaidIntent =
   | { intent: "link-token" }
-  | { intent: "connect"; public_token: string; institution_id?: string };
+  | { intent: "connect"; public_token: string; institution_id?: string }
+  | { intent: "refresh"; item_id: string }
+  | { intent: "remove"; item_id: string };
 
 export type PlaidActionResult =
   | { ok: true; intent: "link-token"; linkToken: string }
   | { ok: true; intent: "connect" }
-  | { ok: false; intent: string; error: string };
+  | { ok: true; intent: "refresh"; itemId: string; added: number; modified: number; removed: number }
+  | { ok: true; intent: "remove"; itemId: string }
+  | { ok: false; intent: string; itemId?: string; error: string };
 
-/** Errors the page shows inline; anything else goes to the error boundary. */
-const INLINE_STATUSES = [400, 409, 422, 502];
+/** Errors each intent shows inline; anything else goes to the error boundary. */
+const INLINE_STATUSES: Record<PlaidIntent["intent"], number[]> = {
+  "link-token": [400, 409, 422, 502],
+  connect: [400, 409, 422, 502],
+  refresh: [409, 502],
+  remove: [409, 502],
+};
 
-function isInline(error: unknown): error is ApiError {
-  return error instanceof ApiError && INLINE_STATUSES.includes(error.status);
+/** Reads a JSON request body as a PlaidIntent, or answers 400 when it isn't one. */
+export async function readPlaidIntent(request: Request): Promise<PlaidIntent> {
+  const body: unknown = await request.json().catch(() => null);
+  const value = (body ?? {}) as Record<string, unknown>;
+  const isText = (v: unknown): v is string => typeof v === "string" && v.length > 0;
+
+  switch (value.intent) {
+    case "link-token":
+      return { intent: "link-token" };
+    case "connect":
+      if (!isText(value.public_token)) break;
+      return isText(value.institution_id)
+        ? { intent: "connect", public_token: value.public_token, institution_id: value.institution_id }
+        : { intent: "connect", public_token: value.public_token };
+    case "refresh":
+    case "remove":
+      if (!isText(value.item_id)) break;
+      return { intent: value.intent, item_id: value.item_id };
+  }
+  throw new Response("Bad request", { status: 400 });
 }
 
 export async function handlePlaidIntent(
@@ -27,6 +54,8 @@ export async function handlePlaidIntent(
   payload: PlaidIntent,
 ): Promise<PlaidActionResult> {
   const base = `/businesses/${encodeURIComponent(businessId)}/plaid`;
+  const itemId = "item_id" in payload ? payload.item_id : undefined;
+  const itemPath = itemId ? `${base}/items/${encodeURIComponent(itemId)}` : "";
 
   try {
     switch (payload.intent) {
@@ -43,11 +72,38 @@ export async function handlePlaidIntent(
         await invalidateBankData(queryClient, businessId);
         return { ok: true, intent: "connect" };
       }
-      default:
-        throw new Response("Unknown intent", { status: 400 });
+      case "refresh": {
+        const { added, modified, removed } = await apiFetch<Schemas["SyncResponse"]>(`${itemPath}/sync`, {
+          method: "POST",
+        });
+        await invalidateBankData(queryClient, businessId);
+        return { ok: true, intent: "refresh", itemId: payload.item_id, added, modified, removed };
+      }
+      case "remove": {
+        await apiFetch<void>(itemPath, { method: "DELETE" });
+        await invalidateBankData(queryClient, businessId);
+        return { ok: true, intent: "remove", itemId: payload.item_id };
+      }
     }
   } catch (error) {
-    if (isInline(error)) return { ok: false, intent: payload.intent, error: apiErrorMessage(error) };
+    if (!(error instanceof ApiError)) throw error;
+
+    // The connection is gone: show the list as it is now.
+    if (error.status === 404 && (payload.intent === "refresh" || payload.intent === "remove")) {
+      await invalidateBankData(queryClient, businessId);
+      return payload.intent === "remove"
+        ? { ok: true, intent: "remove", itemId: payload.item_id }
+        : { ok: false, intent: "refresh", itemId, error: "This connection no longer exists." };
+    }
+
+    if (INLINE_STATUSES[payload.intent].includes(error.status)) {
+      // A refused sync may have just recorded Needs attention on the connection, so
+      // reload it on any 409 rather than matching the API's wording.
+      if (payload.intent === "refresh" && error.status === 409) {
+        await invalidateBankData(queryClient, businessId);
+      }
+      return { ok: false, intent: payload.intent, itemId, error: apiErrorMessage(error) };
+    }
     throw error;
   }
 }

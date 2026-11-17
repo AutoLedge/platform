@@ -16,6 +16,7 @@ import Reconciliation from "@/routes/reconciliation";
 import Transactions from "@/routes/transactions";
 import Invoices from "@/routes/invoices";
 import Connections from "@/routes/connections";
+import { connectionsAction, connectionsLoader } from "@/routes/connections-loaders";
 import Settings from "@/routes/settings";
 
 export const router = createBrowserRouter([
@@ -58,7 +59,7 @@ export const router = createBrowserRouter([
               { path: "reconciliation", Component: Reconciliation },
               { path: "transactions", Component: Transactions },
               { path: "invoices", Component: Invoices },
-              { path: "connections", Component: Connections },
+              { path: "connections", Component: Connections, loader: connectionsLoader, action: connectionsAction },
               { path: "settings", Component: Settings },
             ],
           },
