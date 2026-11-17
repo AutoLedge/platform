@@ -14,8 +14,10 @@ import { finishSetupAction, requireDraftLoader } from "@/routes/onboarding-loade
 import Overview from "@/routes/overview";
 import Reconciliation from "@/routes/reconciliation";
 import Transactions from "@/routes/transactions";
+import { transactionsLoader } from "@/routes/transactions-loaders";
 import Invoices from "@/routes/invoices";
 import Connections from "@/routes/connections";
+import { connectionsAction, connectionsLoader } from "@/routes/connections-loaders";
 import Settings from "@/routes/settings";
 
 export const router = createBrowserRouter([
@@ -56,9 +58,9 @@ export const router = createBrowserRouter([
             children: [
               { index: true, Component: Overview },
               { path: "reconciliation", Component: Reconciliation },
-              { path: "transactions", Component: Transactions },
+              { path: "transactions", Component: Transactions, loader: transactionsLoader },
               { path: "invoices", Component: Invoices },
-              { path: "connections", Component: Connections },
+              { path: "connections", Component: Connections, loader: connectionsLoader, action: connectionsAction },
               { path: "settings", Component: Settings },
             ],
           },

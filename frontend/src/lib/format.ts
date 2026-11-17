@@ -22,6 +22,35 @@ export function formatTime(date: Date) {
   return timeFormat.format(date)
 }
 
+const dateTimeFormat = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' })
+
+/** "Nov 15, 2026, 10:42 AM" from an ISO timestamp. */
+export function formatDateTime(value: string) {
+  return dateTimeFormat.format(new Date(value))
+}
+
+/**
+ * Formats an API decimal string for display only (never for arithmetic). With a currency
+ * it's "$1,234.50"; without one, just "1,234.50". `unsigned` drops the sign.
+ */
+export function formatMoney(value: string, currency: string | null, { unsigned = false } = {}) {
+  const amount = Number(unsigned ? value.replace(/^[-+]/, '') : value)
+  if (currency) {
+    try {
+      return new Intl.NumberFormat('en-CA', { style: 'currency', currency, currencyDisplay: 'narrowSymbol' }).format(amount)
+    } catch {
+      // Not a code Intl knows: fall through and show the code beside the number.
+      return `${new Intl.NumberFormat('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)} ${currency}`
+    }
+  }
+  return new Intl.NumberFormat('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)
+}
+
+/** "•••• 1234", or "" when there is no mask. */
+export function formatMask(mask: string | null) {
+  return mask ? `•••• ${mask}` : ''
+}
+
 /**
  * Parses "2026-10-20" or "2026-10-20T10:42" as a LOCAL date. `new Date("2026-10-20")`
  * would be read as UTC midnight and show the previous day in North American time zones.
