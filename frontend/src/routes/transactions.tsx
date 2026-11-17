@@ -1,329 +1,269 @@
-import { useState } from 'react'
-import { Link } from 'react-router'
-import transactionsData from '@/data/transactions.json'
-import {
-  FilterSelect,
-  ResetFilters,
-  SearchInput,
-  SelectControl,
-  StatusBadge,
-  StatusTabs,
-  TablePagination,
-  paginate,
-} from '@/components/LedgerControls'
-import { fuzzyFilter } from '@/lib/fuzzy-search'
-import { formatDate, formatSignedCurrency, formatTime, parseLocalDate } from '@/lib/format'
+import type { FormEvent } from 'react'
+import { Link, useLoaderData, useLocation, useParams, useSubmit } from 'react-router'
+import { useSuspenseInfiniteQuery, useSuspenseQuery } from '@tanstack/react-query'
+import type { Schemas } from '@/lib/api'
+import { formatDate, formatMoney, parseLocalDate } from '@/lib/format'
+import { StatusBadge } from '@/components/LedgerControls'
+import { accountsQuery } from '@/queries/plaid'
+import { transactionsQuery, type TransactionFilters } from '@/queries/transactions'
+import type { transactionsLoader } from '@/routes/transactions-loaders'
 import '@/styles/transactions.css'
 
-// ── Data shapes (mirror the fake JSON until the FastAPI endpoint exists) ──
+type Transaction = Schemas['TransactionResponse']
 
-type MatchStatus = 'matched' | 'unmatched'
-
-type BankAccount = {
-  id: string
-  name: string
-  mask: string
-  currency: string
-}
-
-type Transaction = {
-  id: string
-  accountId: string
-  /** Local ISO date-time without offset, e.g. "2026-10-20T10:42" */
-  datetime: string
-  vendor: string
-  category: string
-  /** Signed amount: positive = money in, negative = money out */
-  amount: number
-  status: MatchStatus
-  /** Invoice this transaction is matched to (see data/invoices.json) */
-  invoiceNumber: string | null
-}
-
-const accounts = transactionsData.accounts as BankAccount[]
-const transactions = transactionsData.transactions as Transaction[]
-
-// ── Filter definitions ──
-
-const PAGE_SIZE = 6
-
-type DateRangeId = 'october' | 'october-business-hours' | 'last-7-days'
-
-const dateRanges: { id: DateRangeId; label: string; test: (date: Date) => boolean }[] = [
-  {
-    id: 'october',
-    label: 'Oct 1–31, 2026 · All times',
-    test: (date) => date.getFullYear() === 2026 && date.getMonth() === 9,
-  },
-  {
-    id: 'october-business-hours',
-    label: 'Oct 1–31, 2026 · 9 AM–5 PM',
-    test: (date) => date.getFullYear() === 2026 && date.getMonth() === 9 && date.getHours() >= 9 && date.getHours() < 17,
-  },
-  {
-    id: 'last-7-days',
-    label: 'Oct 14–20, 2026 · All times',
-    test: (date) => date >= new Date(2026, 9, 14) && date < new Date(2026, 9, 21),
-  },
+// Plaid's primary categories. The API sends the detailed one (e.g. FOOD_AND_DRINK_COFFEE),
+// whose prefix is one of these.
+const PRIMARY_CATEGORIES = [
+  'INCOME', 'TRANSFER_IN', 'TRANSFER_OUT', 'LOAN_PAYMENTS', 'LOAN_DISBURSEMENTS', 'BANK_FEES',
+  'ENTERTAINMENT', 'FOOD_AND_DRINK', 'GENERAL_MERCHANDISE', 'HOME_IMPROVEMENT', 'MEDICAL',
+  'PERSONAL_CARE', 'GENERAL_SERVICES', 'GOVERNMENT_AND_NON_PROFIT', 'TRANSPORTATION', 'TRAVEL',
+  'RENT_AND_UTILITIES',
 ]
 
-type AmountRangeId = 'any' | 'in' | 'out' | 'under-100' | '100-1000' | 'over-1000'
-
-const amountRanges: { id: AmountRangeId; label: string; test: (amount: number) => boolean }[] = [
-  { id: 'any', label: 'Any amount', test: () => true },
-  { id: 'in', label: 'Money in', test: (amount) => amount > 0 },
-  { id: 'out', label: 'Money out', test: (amount) => amount < 0 },
-  { id: 'under-100', label: 'Under $100', test: (amount) => Math.abs(amount) < 100 },
-  { id: '100-1000', label: '$100 – $1,000', test: (amount) => Math.abs(amount) >= 100 && Math.abs(amount) <= 1000 },
-  { id: 'over-1000', label: 'Over $1,000', test: (amount) => Math.abs(amount) > 1000 },
-]
-
-type StatusTab = 'all' | MatchStatus
-
-const statusTabs: { id: StatusTab; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'matched', label: 'Matched' },
-  { id: 'unmatched', label: 'Unmatched' },
-]
-
-type Filters = {
-  dateRange: DateRangeId
-  category: string
-  vendor: string
-  amountRange: AmountRangeId
+function sentenceCase(code: string) {
+  const words = code.toLowerCase().replace(/_/g, ' ').trim()
+  return words.charAt(0).toUpperCase() + words.slice(1)
 }
 
-const defaultFilters: Filters = { dateRange: 'october', category: 'all', vendor: 'all', amountRange: 'any' }
-
-function uniqueSorted(values: string[]) {
-  return [...new Set(values)].sort((a, b) => a.localeCompare(b))
+/** "FOOD_AND_DRINK_COFFEE" → "Food and drink · Coffee". */
+function formatCategory(category: string | null) {
+  if (!category) return '—'
+  const primary = PRIMARY_CATEGORIES.find((prefix) => category.startsWith(`${prefix}_`))
+  if (!primary) return sentenceCase(category)
+  return `${sentenceCase(primary)} · ${sentenceCase(category.slice(primary.length + 1))}`
 }
 
-/** Every value a person might type to find a transaction. */
-function searchFields(transaction: Transaction) {
-  const date = parseLocalDate(transaction.datetime)
-  return [
-    transaction.vendor,
-    transaction.category,
-    formatDate(date),
-    formatTime(date),
-    formatSignedCurrency(transaction.amount),
-    transaction.status === 'matched' ? 'Matched' : 'Unmatched',
-    transaction.invoiceNumber,
-  ]
+function formatAccount(name: string, mask: string | null) {
+  return mask ? `${name} ••${mask}` : name
 }
 
 // ── Route component ──
 
 export default function Transactions() {
-  const [accountId, setAccountId] = useState(accounts[0].id)
-  const [filters, setFilters] = useState<Filters>(defaultFilters)
-  const [statusTab, setStatusTab] = useState<StatusTab>('all')
-  const [search, setSearch] = useState('')
-  const [sortDirection, setSortDirection] = useState<'desc' | 'asc'>('desc')
-  const [page, setPage] = useState(1)
-
-  const account = accounts.find((item) => item.id === accountId) ?? accounts[0]
-  const accountTransactions = transactions.filter((transaction) => transaction.accountId === accountId)
-  const categoryOptions = uniqueSorted(accountTransactions.map((transaction) => transaction.category))
-  const vendorOptions = uniqueSorted(accountTransactions.map((transaction) => transaction.vendor))
-
-  const dateRange = dateRanges.find((range) => range.id === filters.dateRange) ?? dateRanges[0]
-  const amountRange = amountRanges.find((range) => range.id === filters.amountRange) ?? amountRanges[0]
-
-  // Rows that pass the filters and search; the status tabs count against this set.
-  const filtered = fuzzyFilter(
-    accountTransactions.filter(
-      (transaction) =>
-        dateRange.test(parseLocalDate(transaction.datetime)) &&
-        (filters.category === 'all' || transaction.category === filters.category) &&
-        (filters.vendor === 'all' || transaction.vendor === filters.vendor) &&
-        amountRange.test(transaction.amount),
-    ),
-    search,
-    searchFields,
-  )
-
-  const counts: Record<StatusTab, number> = {
-    all: filtered.length,
-    matched: filtered.filter((transaction) => transaction.status === 'matched').length,
-    unmatched: filtered.filter((transaction) => transaction.status === 'unmatched').length,
-  }
-
-  const visible = filtered
-    .filter((transaction) => statusTab === 'all' || transaction.status === statusTab)
-    .sort((a, b) => (sortDirection === 'desc' ? b.datetime.localeCompare(a.datetime) : a.datetime.localeCompare(b.datetime)))
-
-  const { rows, start, currentPage, pageCount } = paginate(visible, page, PAGE_SIZE)
-
-  function updateFilter<K extends keyof Filters>(key: K, value: Filters[K]) {
-    setFilters((current) => ({ ...current, [key]: value }))
-    setPage(1)
-  }
-
-  function changeAccount(nextAccountId: string) {
-    setAccountId(nextAccountId)
-    setFilters(defaultFilters) // category/vendor lists differ per account
-    setStatusTab('all')
-    setPage(1)
-  }
-
-  function resetFilters() {
-    setFilters(defaultFilters)
-    setStatusTab('all')
-    setSearch('')
-    setPage(1)
-  }
+  const businessId = useParams().businessId!
+  const { filters, invalidRange } = useLoaderData<typeof transactionsLoader>()
+  const pagePath = `/b/${businessId}/transactions`
 
   return (
     <main className="ledger-page">
       <div className="ledger-header">
         <div className="ledger-intro">
           <h1>Transactions</h1>
-          <p>View your bank activity and track transactions matched to invoices</p>
+          <p>Bank activity imported from your connected accounts</p>
         </div>
-        <SelectControl
-          className="ledger-account-select"
-          ariaLabel="Bank account"
-          value={accountId}
-          options={accounts.map((item) => ({ value: item.id, label: `${item.name} • ${item.mask}` }))}
-          onChange={changeAccount}
-        />
       </div>
 
-      <div className="ledger-filters">
-        <FilterSelect
-          className="ledger-filter-wide"
-          label="Date / time"
-          value={filters.dateRange}
-          options={dateRanges.map((range) => ({ value: range.id, label: range.label }))}
-          onChange={(value) => updateFilter('dateRange', value as DateRangeId)}
-        />
-        <FilterSelect
-          className="ledger-filter-narrow"
-          label="Category"
-          value={filters.category}
-          options={[{ value: 'all', label: 'All categories' }, ...categoryOptions.map((category) => ({ value: category, label: category }))]}
-          onChange={(value) => updateFilter('category', value)}
-        />
-        <FilterSelect
-          className="ledger-filter-medium"
-          label="Vendor / merchant"
-          value={filters.vendor}
-          options={[{ value: 'all', label: 'All counterparties' }, ...vendorOptions.map((vendor) => ({ value: vendor, label: vendor }))]}
-          onChange={(value) => updateFilter('vendor', value)}
-        />
-        <FilterSelect
-          className="ledger-filter-narrow"
-          label="Amount (CAD)"
-          value={filters.amountRange}
-          options={amountRanges.map((range) => ({ value: range.id, label: range.label }))}
-          onChange={(value) => updateFilter('amountRange', value as AmountRangeId)}
-        />
-        <ResetFilters onReset={resetFilters} />
-      </div>
+      <TransactionFiltersForm businessId={businessId} filters={filters} pagePath={pagePath} />
 
-      <section className="ledger-card" aria-label="Bank account transactions">
-        <div className="ledger-toolbar">
-          <StatusTabs
-            ariaLabel="Filter by invoice status"
-            tabs={statusTabs}
-            value={statusTab}
-            counts={counts}
-            onChange={(tab) => {
-              setStatusTab(tab)
-              setPage(1)
-            }}
-          />
-          <div className="ledger-toolbar-end">
-            <SearchInput
-              placeholder="Search transactions"
-              value={search}
-              onChange={(value) => {
-                setSearch(value)
-                setPage(1)
-              }}
-            />
-            <p className="ledger-currency-note">All amounts in {account.currency}</p>
-          </div>
-        </div>
-
-        <div className="ledger-table-scroll">
-          <table className="ledger-table transactions-table">
-            <colgroup>
-              <col className="col-date" />
-              <col className="col-vendor" />
-              <col className="col-category" />
-              <col className="col-amount" />
-              <col />
-            </colgroup>
-            <thead>
-              <tr>
-                <th scope="col" aria-sort={sortDirection === 'desc' ? 'descending' : 'ascending'}>
-                  <button type="button" className="ledger-sort" onClick={() => setSortDirection(sortDirection === 'desc' ? 'asc' : 'desc')}>
-                    Date / time {sortDirection === 'desc' ? '↓' : '↑'}
-                  </button>
-                </th>
-                <th scope="col">Vendor / counterparty</th>
-                <th scope="col">Category</th>
-                <th scope="col" className="align-right">
-                  Amount
-                </th>
-                <th scope="col">Invoice status</th>
-              </tr>
-            </thead>
-            <tbody>
-              {rows.map((transaction) => {
-                const date = parseLocalDate(transaction.datetime)
-                return (
-                  <tr key={transaction.id}>
-                    <td>
-                      <span className="ledger-item transaction-date">{formatDate(date)}</span>
-                      <span className="ledger-caption">{formatTime(date)}</span>
-                    </td>
-                    <td className="ledger-strong">{transaction.vendor}</td>
-                    <td className="ledger-item">{transaction.category}</td>
-                    <td className="ledger-strong ledger-amount align-right">{formatSignedCurrency(transaction.amount)}</td>
-                    <td>
-                      <span className="transaction-match">
-                        <StatusBadge tone={transaction.status === 'matched' ? 'positive' : 'neutral'}>
-                          {transaction.status === 'matched' ? 'Matched' : 'Unmatched'}
-                        </StatusBadge>
-                        {transaction.invoiceNumber && (
-                          <Link
-                            className="invoice-link"
-                            to={`../invoices?invoice=${encodeURIComponent(transaction.invoiceNumber)}`}
-                            title={`View invoice ${transaction.invoiceNumber}`}
-                          >
-                            {transaction.invoiceNumber}
-                          </Link>
-                        )}
-                      </span>
-                    </td>
-                  </tr>
-                )
-              })}
-              {rows.length === 0 && (
-                <tr>
-                  <td colSpan={5} className="ledger-empty">
-                    No transactions match these filters.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        <TablePagination
-          noun="transactions"
-          total={visible.length}
-          start={start}
-          shown={rows.length}
-          currentPage={currentPage}
-          pageCount={pageCount}
-          onPageChange={setPage}
-        />
+      <section className="ledger-card" aria-label="Bank transactions">
+        {invalidRange ? (
+          <p className="ledger-empty transactions-message" role="alert">
+            'From' must be on or before 'To'.
+          </p>
+        ) : (
+          <TransactionTable businessId={businessId} filters={filters} pagePath={pagePath} />
+        )}
       </section>
     </main>
+  )
+}
+
+// ── Filters (kept in the URL) ──
+
+function TransactionFiltersForm({
+  businessId,
+  filters,
+  pagePath,
+}: {
+  businessId: string
+  filters: TransactionFilters
+  pagePath: string
+}) {
+  const { data: accounts } = useSuspenseQuery(accountsQuery(businessId))
+  const submit = useSubmit()
+  const { search } = useLocation()
+
+  // Leave empty fields out of the URL, so a cleared field doesn't linger as `?q=`.
+  function handleSubmit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const params = new URLSearchParams()
+    for (const [name, value] of new FormData(event.currentTarget)) {
+      if (typeof value === 'string' && value.trim()) params.set(name, value.trim())
+    }
+    submit(params, { method: 'get', action: pagePath })
+  }
+
+  return (
+    // Keyed by the URL so Back/Forward refill the fields.
+    <form key={search} method="get" action={pagePath} className="ledger-filters transactions-filters" onSubmit={handleSubmit}>
+      <label className="ledger-filter transactions-filter-date">
+        <span className="ledger-filter-label">From</span>
+        <input className="transactions-input" type="date" name="from" defaultValue={filters.from ?? ''} />
+      </label>
+      <label className="ledger-filter transactions-filter-date">
+        <span className="ledger-filter-label">To</span>
+        <input className="transactions-input" type="date" name="to" defaultValue={filters.to ?? ''} />
+      </label>
+      <label className="ledger-filter ledger-filter-medium">
+        <span className="ledger-filter-label">Account</span>
+        <span className="ledger-select ledger-filter-control">
+          <select name="account_id" defaultValue={filters.account_id ?? ''}>
+            <option value="">All accounts</option>
+            {accounts.map((account) => (
+              <option key={account.id} value={account.id}>
+                {formatAccount(account.name, account.mask)}
+                {account.connected ? '' : ' (disconnected)'}
+              </option>
+            ))}
+          </select>
+          <span className="ledger-select-arrow" aria-hidden="true" />
+        </span>
+      </label>
+      <label className="ledger-filter transactions-filter-status">
+        <span className="ledger-filter-label">Status</span>
+        <span className="ledger-select ledger-filter-control">
+          <select name="pending" defaultValue={filters.pending ?? ''}>
+            <option value="">All</option>
+            <option value="true">Pending</option>
+            <option value="false">Posted</option>
+          </select>
+          <span className="ledger-select-arrow" aria-hidden="true" />
+        </span>
+      </label>
+      <label className="ledger-filter ledger-filter-medium">
+        <span className="ledger-filter-label">Search</span>
+        <input
+          className="transactions-input"
+          type="search"
+          name="q"
+          maxLength={100}
+          placeholder="Merchant or description"
+          defaultValue={filters.q ?? ''}
+        />
+      </label>
+      <div className="transactions-filter-actions">
+        <button type="submit" className="ledger-header-action transactions-apply">
+          Apply
+        </button>
+        <Link to={pagePath} className="transactions-clear">
+          Clear
+        </Link>
+      </div>
+    </form>
+  )
+}
+
+// ── Results ──
+
+function TransactionTable({
+  businessId,
+  filters,
+  pagePath,
+}: {
+  businessId: string
+  filters: TransactionFilters
+  pagePath: string
+}) {
+  const { data, hasNextPage, fetchNextPage, isFetchingNextPage, isFetchNextPageError } = useSuspenseInfiniteQuery(
+    transactionsQuery(businessId, filters),
+  )
+  const rows = data.pages.flatMap((page) => page.items)
+  const filtered = Object.keys(filters).length > 0
+
+  return (
+    <>
+      <div className="ledger-table-scroll">
+        <table className="ledger-table transactions-table">
+          <colgroup>
+            <col className="col-date" />
+            <col className="col-vendor" />
+            <col className="col-account" />
+            <col className="col-category" />
+            <col className="col-amount" />
+            <col />
+          </colgroup>
+          <thead>
+            <tr>
+              <th scope="col">Date</th>
+              <th scope="col">Merchant / description</th>
+              <th scope="col">Account</th>
+              <th scope="col">Category</th>
+              <th scope="col" className="align-right">
+                Amount
+              </th>
+              <th scope="col">Status</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((transaction) => (
+              <TransactionRow key={transaction.id} transaction={transaction} />
+            ))}
+            {rows.length === 0 && (
+              <tr>
+                <td colSpan={6} className="ledger-empty">
+                  {filtered ? (
+                    <>
+                      No transactions match these filters. <Link to={pagePath}>Clear filters</Link>
+                    </>
+                  ) : (
+                    <>
+                      No transactions yet. Connect a bank in <Link to={`/b/${businessId}/connections`}>Connections</Link>.
+                    </>
+                  )}
+                </td>
+              </tr>
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="ledger-pagination">
+        <p>
+          Showing {rows.length} {rows.length === 1 ? 'transaction' : 'transactions'}
+        </p>
+        <div className="ledger-pagination-controls">
+          {isFetchNextPageError && !isFetchingNextPage && (
+            <span className="transactions-load-error" role="alert">
+              Couldn't load more transactions.
+            </span>
+          )}
+          {hasNextPage && (
+            <button type="button" disabled={isFetchingNextPage} onClick={() => fetchNextPage()}>
+              {isFetchingNextPage ? 'Loading…' : 'Load more'}
+            </button>
+          )}
+        </div>
+      </div>
+    </>
+  )
+}
+
+function TransactionRow({ transaction }: { transaction: Transaction }) {
+  // Plaid's sign: positive is money out of the account, negative is money in.
+  const outflow = !transaction.amount.startsWith('-')
+  const amount = formatMoney(transaction.amount, transaction.currency, { unsigned: true })
+
+  return (
+    <tr>
+      <td>
+        <span className="ledger-item transaction-date">{formatDate(parseLocalDate(transaction.date))}</span>
+      </td>
+      <td>
+        <span className="ledger-strong transaction-text">{transaction.merchant_name || transaction.description}</span>
+        {transaction.merchant_name && <span className="ledger-caption transaction-text">{transaction.description}</span>}
+      </td>
+      <td>
+        <span className="ledger-item transaction-text">{formatAccount(transaction.account_name, transaction.account_mask)}</span>
+      </td>
+      <td>
+        <span className="ledger-item transaction-text">{formatCategory(transaction.category)}</span>
+      </td>
+      <td className={`ledger-amount align-right ${outflow ? 'negative' : 'positive'}`}>
+        <span className="visually-hidden">{outflow ? 'Money out' : 'Money in'} </span>
+        {outflow ? '−' : '+'}
+        {amount}
+      </td>
+      <td>{transaction.pending && <StatusBadge tone="warning">Pending</StatusBadge>}</td>
+    </tr>
   )
 }

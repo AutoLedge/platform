@@ -1,17 +1,49 @@
 /* Transactions route — Figma: AutoLedge / Transactions (47:399). Shared ledger styles: styles/LedgerControls.css */
 
-.transactions-table { min-width: 960px; }
+.transactions-table { min-width: 1040px; }
 
 /* Column widths include the 16px gutter before each column after the first */
-.transactions-table .col-date { width: 168px; }      /* 20 inset + 148 */
-.transactions-table .col-vendor { width: 224px; }    /* 16 + 208 */
+.transactions-table .col-date { width: 136px; }      /* 20 inset + 116 */
+.transactions-table .col-vendor { width: 264px; }    /* 16 + 248 */
+.transactions-table .col-account { width: 200px; }   /* 16 + 184 */
 .transactions-table .col-category { width: 238px; }  /* 16 + 222 */
 .transactions-table .col-amount { width: 144px; }    /* 16 + 128 */
 
+/* Block spans inside cells. Never put these on the <td> itself: a block <td> leaves the table grid. */
 .transaction-date { display: block; white-space: nowrap; }
+.transaction-text { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-.transaction-match { display: flex; align-items: center; gap: 8px; }
+/* ── Filters form ── */
 
-.invoice-link { color: var(--ledger-muted); font-size: 11px; text-decoration: none; white-space: nowrap; }
-.invoice-link:hover,
-.invoice-link:focus-visible { color: var(--ledger-accent); text-decoration: underline; }
+.transactions-filter-date { width: 160px; }
+.transactions-filter-status { width: 140px; }
+
+.transactions-input {
+  width: 100%;
+  height: 38px;
+  padding: 0 12px;
+  box-sizing: border-box;
+  color: var(--ledger-ink);
+  border: 1px solid #d3deef;
+  border-radius: 8px;
+  background: #fff;
+  font: 400 15px/normal var(--ledger-plex);
+}
+.transactions-input:focus-visible { outline: 2px solid #6a9be8; outline-offset: 2px; }
+.transactions-input::placeholder { color: #a3a9b1; }
+
+.transactions-filter-actions { min-width: 0; flex: 1; display: flex; align-items: center; justify-content: flex-end; gap: 16px; }
+.transactions-apply { height: 38px; }
+.transactions-clear { color: var(--ledger-accent); font: 600 13px/normal var(--ledger-plex); text-decoration: none; }
+.transactions-clear:hover,
+.transactions-clear:focus-visible { text-decoration: underline; }
+
+/* ── Results ── */
+
+.transactions-message { margin: 0; display: grid; place-items: center; }
+.ledger-empty a { color: var(--ledger-accent); font-weight: 600; }
+.transactions-load-error { color: #963f3f; font-weight: 600; }
+
+@media (max-width: 1280px) {
+  .transactions-filter-actions { flex: 1 1 100%; justify-content: flex-start; }
+}

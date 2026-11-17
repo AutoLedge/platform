@@ -68,8 +68,7 @@ function SidebarLink({ route, businessId }: { route: DashboardRoute; businessId:
   )
 }
 
-function Sidebar({ user, onSignOut }: { user: DashboardUser; onSignOut: () => void }) {
-  const navigate = useNavigate()
+function Sidebar() {
   const { businessId } = useParams()
 
   return (
@@ -85,24 +84,28 @@ function Sidebar({ user, onSignOut }: { user: DashboardUser; onSignOut: () => vo
       </nav>
       <div className="sidebar-footer">
         <BusinessSwitcher currentId={businessId} />
-        <ProfilePopup
-          name={user.name}
-          email={user.email}
-          onPreferences={businessId ? () => navigate(businessPath(businessId, 'settings')) : undefined}
-          onSignOut={onSignOut}
-        />
       </div>
     </aside>
   )
 }
 
-function Topbar() {
+// Account actions (profile, preferences, sign out) live here; the sidebar footer is only the business switcher.
+function Topbar({ user, onSignOut }: { user: DashboardUser; onSignOut: () => void }) {
+  const navigate = useNavigate()
+  const { businessId } = useParams()
+
   return (
     <header className="topbar">
       <button className="icon-button notification-button" type="button" aria-label="Notifications">
         <DashboardIcon name="bell" size={21} />
         <span className="notification-dot" />
       </button>
+      <ProfilePopup
+        name={user.name}
+        email={user.email}
+        onPreferences={businessId ? () => navigate(businessPath(businessId, 'settings')) : undefined}
+        onSignOut={onSignOut}
+      />
     </header>
   )
 }
@@ -113,9 +116,9 @@ export default function DashboardLayout() {
 
   return (
     <div className="app-shell">
-      <Sidebar user={user} onSignOut={() => submit(null, { method: 'post', action: '/logout' })} />
+      <Sidebar />
       <div className="main-column">
-        <Topbar />
+        <Topbar user={user} onSignOut={() => submit(null, { method: 'post', action: '/logout' })} />
         <Outlet />
       </div>
     </div>

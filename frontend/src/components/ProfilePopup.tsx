@@ -40,7 +40,7 @@ export default function ProfilePopup({ name, email, onPreferences, onSignOut }: 
   return (
     <div className="profile-menu-wrapper" ref={popupRef}>
       <button
-        className="business-switcher"
+        className="profile-trigger"
         type="button"
         ref={triggerRef}
         aria-label={`Open profile menu for ${name}`}
@@ -50,7 +50,6 @@ export default function ProfilePopup({ name, email, onPreferences, onSignOut }: 
         onClick={() => setIsOpen((open) => !open)}
       >
         <span className="avatar" aria-hidden="true">{name.charAt(0).toUpperCase()}</span>
-        <span>{name}</span>
       </button>
 
       {isOpen && (

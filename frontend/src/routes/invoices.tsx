@@ -33,7 +33,7 @@ type Invoice = {
   amount: number
   status: PaymentStatus
   documentName: string
-  /** Bank transaction this invoice was matched to (see data/transactions.json) */
+  /** Bank transaction this invoice was matched to (sample id; not linked to real transactions yet) */
   matchedTransactionId: string | null
 }
 
