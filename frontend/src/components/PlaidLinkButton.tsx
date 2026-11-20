@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useFetcher } from "react-router";
 import { usePlaidLink, type PlaidLinkOnExit, type PlaidLinkOnSuccess } from "react-plaid-link";
-import type { PlaidActionResult, PlaidIntent } from "@/routes/plaid-actions";
+import type { PlaidActionResult, PlaidIntent } from "@/routes/connections/plaid-actions";
 
 type PlaidLinkButtonProps = {
   /** The business being connected. Callers key the button by it so switching business resets it. */

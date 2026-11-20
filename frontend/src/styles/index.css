@@ -1,102 +1,207 @@
 @import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
 
-@theme {
-  /* Fonts */
-  --font-serif: "Source Serif 4", Georgia, "Times New Roman", serif;
-  --font-sans: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
-  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+@custom-variant dark (&:is(.dark *));
 
-  /* Navy — brand */
-  --color-navy-50: #EAF0F6;
-  --color-navy-100: #DCE6F2;
-  --color-navy-200: #BFD3E6;
-  --color-navy-300: #8DB6E0;
-  --color-navy-400: #4D6F94;
-  --color-navy-600: #164B7E;
-  --color-navy-700: #24476E;
-  --color-navy-800: #143A60;
-  --color-navy-850: #0F3257;
-  --color-navy-900: #0B2A4A;
-
-  /* Neutrals */
-  --color-ground: #F5F6F3;
-  --color-surface: #FFFFFF;
-  --color-surface-subtle: #FAFBFC;
-  --color-surface-muted: #F1F3F5;
-  --color-surface-chip: #EEF0F2;
-  --color-ink: #0F1B2A;
-  --color-ink-secondary: #1E2B3A;
-  --color-muted: #4B5A6B;
-  --color-placeholder: #6B7785;
-  --color-on-navy: #E6ECF3;
-  --color-on-navy-muted: #C3D0DE;
-  --color-line-faint: #E4E8ED;
-  --color-line: #DDE2E8;
-  --color-line-rule: #D5DBE2;
-  --color-line-quiet: #C9D1DA;
-  --color-line-input: #B9C3CE;
-  --color-line-strong: #AEB8C4;
-
-  /* Green — verified / done */
-  --color-green-50: #F2F7F4;
-  --color-green-100: #E3F1E8;
-  --color-green-150: #D6EFE0;
-  --color-green-200: #C7E0D1;
-  --color-green-250: #B7D8C4;
-  --color-green-300: #9FD8B8;
-  --color-green-700: #1C6B45;
-  --color-green-900: #12452D;
-
-  /* Amber — pending */
-  --color-amber-50: #FBF3E0;
-  --color-amber-700: #8A5A00;
-  --color-amber-900: #4A3300;
-
-  /* Rust — errors / denied */
-  --color-rust-50: #F7F3EE;
-  --color-rust-200: #E6D6C3;
-  --color-rust-700: #9A4A12;
-  --color-rust-900: #5C3A12;
-
-  --color-scrim: rgba(11, 27, 42, 0.62);
-
-  /* Backgrounds and foregrounds */
-  --color-background-primary: var(--color-surface);
-  --color-background-secondary: var(--color-ground);
-  --color-foreground-primary: var(--color-ink);
-  --color-foreground-secondary: var(--color-muted);
-
-  /* Semantic aliases */
-  --color-action: var(--color-navy-600);
-  --color-action-hover: var(--color-navy-900);
-  --color-focus: var(--color-navy-300);
-  --color-success: var(--color-green-700);
-  --color-pending: var(--color-amber-700);
-
-  /* Radius */
-  --radius-xs: 4px;
-  --radius-sm: 6px;
-  --radius-md: 8px;
-  --radius-lg: 10px;
-  --radius-xl: 12px;
-  --radius-2xl: 14px;
-  --radius-3xl: 16px;
-  --radius-full: 9999px;
-}
-
+/*
+ * AutoLedge theme (source: design/theme.css). Every colour, radius and font
+ * in the app comes from these variables. Never put a hex value in a component:
+ * use them through Tailwind classes (bg-primary, text-muted-foreground, …).
+ */
 :root {
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #1c2430;
-  background: #f2f5fc;
+  color-scheme: light;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   font-optical-sizing: auto;
   font-weight: 400;
+
+  /* Surfaces and text */
+  --background: #f2f6f6;            /* page */
+  --foreground: #0d2226;            /* ink */
+  --card: #ffffff;                  /* table card, inputs, buttons */
+  --card-foreground: #0d2226;
+  --popover: #ffffff;               /* menus, popovers, dialogs (surface-raised) */
+  --popover-foreground: #0d2226;
+  --muted: #e9f0f0;                 /* segmented-control track, subtle fills */
+  --muted-foreground: #4b6064;      /* secondary text, labels, icons */
+  --accent: #e9f0f0;                /* hover / highlighted menu item */
+  --accent-foreground: #0d2226;
+
+  /* Brand */
+  --primary: #0b6874;               /* petrol: primary actions, links, selected tab fill */
+  --primary-foreground: #ffffff;    /* text on primary (on-brand) */
+  --secondary: #ddeff0;             /* brand-tint: invoice-ID chips, selection */
+  --secondary-foreground: #0b6874;
+
+  /* Status */
+  --destructive: #bd431b;           /* negative: errors, unmatched dot */
+  --positive: #1f7a4a;              /* money in, matched check */
+  --negative-tint: #fbebe4;         /* "Unmatched" chip background */
+  --negative-foreground: #9b3615;   /* "Unmatched" chip text (6.2:1 on the tint) */
+
+  /* Lines and focus */
+  --border: #d3dddd;                /* hairlines, table rules, card edges */
+  --input: #7f9396;                 /* control borders (3:1) */
+  --ring: #0b6874;                  /* 2px focus outline, 2px offset */
+
+  /* Charts (shadcn defaults, no charts yet) */
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+
+  /* AutoLedge-only */
+  --surface-hover: #e9f0f0;         /* table row hover */
+  --inverse: #0d2226;               /* tooltip, toast */
+  --inverse-foreground: #ffffff;
+  --shadow-popover: 0 8px 24px rgba(13, 34, 38, 0.12), 0 1px 2px rgba(13, 34, 38, 0.06);
+
+  /* Sidebar: deep petrol in BOTH themes */
+  --sidebar: #0a2e35;
+  --sidebar-foreground: #a9c3c6;            /* nav labels and icons */
+  --sidebar-foreground-strong: #ffffff;     /* business name in the switcher */
+  --sidebar-primary: #0b6874;               /* ACTIVE nav item fill */
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #12424b;                /* hover */
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #1a4a52;
+  --sidebar-ring: #4fc3cf;
+  --sidebar-monogram: #ffffff;              /* business monogram fill */
+  --sidebar-monogram-foreground: #0a2e35;
+
+  --radius: 0.25rem;                /* 4px; see @theme inline for the scale */
 }
 
-body { min-width: 360px; min-height: 100vh; margin: 0; }
-button { font-family: inherit; }
-button:focus-visible { outline: 2px solid #6a9be8; outline-offset: 2px; }
-::selection { color: #fff; background: #4f86da; }
+@theme inline {
+  --font-heading: var(--font-sans);
+  --font-sans: "Inter Variable", Inter, system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --color-foreground: var(--foreground);
+  --color-background: var(--background);
+
+  /* AutoLedge-only */
+  --color-positive: var(--positive);
+  --color-negative-tint: var(--negative-tint);
+  --color-negative-foreground: var(--negative-foreground);
+  --color-surface-hover: var(--surface-hover);
+  --color-inverse: var(--inverse);
+  --color-inverse-foreground: var(--inverse-foreground);
+  --color-sidebar-foreground-strong: var(--sidebar-foreground-strong);
+  --color-sidebar-monogram: var(--sidebar-monogram);
+  --color-sidebar-monogram-foreground: var(--sidebar-monogram-foreground);
+  --shadow-popover: var(--shadow-popover);
+
+  /* Radius scale */
+  --radius-sm: 2px;   /* chips, checkboxes, kbd */
+  --radius-md: 4px;   /* buttons, inputs, menu items, tabs */
+  --radius-lg: 8px;   /* cards, menus, popovers, dialogs */
+  --radius-xl: 12px;  /* mobile bottom sheet top corners */
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+.dark {
+  color-scheme: dark;
+
+  --background: #141619;
+  --foreground: #eceef0;
+  --card: #1c1f23;
+  --card-foreground: #eceef0;
+  --popover: #22262b;
+  --popover-foreground: #eceef0;
+  --muted: #24282d;
+  --muted-foreground: #a7adb5;
+  --accent: #2b3036;
+  --accent-foreground: #eceef0;
+
+  --primary: #4fc3cf;               /* teal in dark */
+  --primary-foreground: #141619;
+  --secondary: #1f3236;
+  --secondary-foreground: #4fc3cf;
+
+  --destructive: #f39a66;
+  --positive: #6fd39d;
+  --negative-tint: #33231c;
+  --negative-foreground: #f39a66;
+
+  --border: #2d3137;
+  --input: #737a84;
+  --ring: #4fc3cf;
+
+  --chart-1: oklch(0.87 0 0);
+  --chart-2: oklch(0.556 0 0);
+  --chart-3: oklch(0.439 0 0);
+  --chart-4: oklch(0.371 0 0);
+  --chart-5: oklch(0.269 0 0);
+
+  --surface-hover: #24282d;
+  --inverse: #eceef0;
+  --inverse-foreground: #141619;
+  --shadow-popover: 0 8px 24px rgba(0, 0, 0, 0.5), 0 1px 2px rgba(0, 0, 0, 0.4);
+
+  /* Sidebar is the same deep petrol as light mode */
+  --sidebar: #0a2e35;
+  --sidebar-foreground: #a9c3c6;
+  --sidebar-foreground-strong: #ffffff;
+  --sidebar-primary: #0b6874;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #12424b;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #1a4a52;
+  --sidebar-ring: #4fc3cf;
+  --sidebar-monogram: #ffffff;
+  --sidebar-monogram-foreground: #0a2e35;
+}
+
+/* Element rules live in the base layer so Tailwind utilities (and shadcn components) override them. */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    min-width: 360px;
+    min-height: 100vh;
+    margin: 0;
+  }
+  html {
+    @apply font-sans;
+  }
+  button { font-family: inherit; }
+  button:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; }
+  ::selection { color: var(--primary-foreground); background: var(--primary); }
+}
