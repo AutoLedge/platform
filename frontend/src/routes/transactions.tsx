@@ -1,14 +1,15 @@
-import { Link, useLoaderData, useParams } from "react-router";
-import { useSuspenseInfiniteQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { Suspense } from "react";
+import { Link, useLoaderData, useLocation, useNavigation, useParams } from "react-router";
+import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
 import { ClockIcon, LinkIcon, SearchXIcon, ArrowLeftRightIcon } from "lucide-react";
 import { FilterRow, StatusTabs } from "@/components/transactions/transaction-filters";
 import { Button } from "@/components/ui/button";
 import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import type { Schemas } from "@/lib/api";
 import { formatAccount, formatMoney, formatShortDate, parseLocalDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
-import { accountsQuery } from "@/queries/plaid";
 import { transactionsQuery, type TransactionFilters } from "@/queries/transactions";
 import type { transactionsLoader } from "@/routes/transactions-loaders";
 
@@ -41,13 +42,13 @@ function formatCategory(category: string | null) {
 export default function Transactions() {
   const businessId = useParams().businessId!;
   const { filters, invalidRange } = useLoaderData<typeof transactionsLoader>();
-  const { data: accounts } = useSuspenseQuery(accountsQuery(businessId));
 
   return (
     // SPEC.md → Transactions page: no visible title (the breadcrumb names the page).
+    // The frame renders at once; the accounts picker and the table suspend on their own data.
     <main className="mx-auto flex w-full max-w-[1240px] flex-col gap-4 px-8 pt-6 pb-10 max-md:px-4">
       <h1 className="sr-only">Transactions</h1>
-      <FilterRow filters={filters} accounts={accounts} />
+      <FilterRow filters={filters} businessId={businessId} />
       {invalidRange ? (
         <TableCard pending={filters.pending}>
           <p role="alert" className="px-4 py-10 text-center text-[13px] text-destructive">
@@ -55,9 +56,61 @@ export default function Transactions() {
           </p>
         </TableCard>
       ) : (
-        <TransactionTable businessId={businessId} filters={filters} />
+        <Suspense
+          fallback={
+            <TableCard pending={filters.pending}>
+              <TableSkeleton />
+            </TableCard>
+          }
+        >
+          <TransactionTable businessId={businessId} filters={filters} />
+        </Suspense>
       )}
     </main>
+  );
+}
+
+/** Same columns and row height as the table, so nothing jumps when the rows arrive. */
+function TableSkeleton() {
+  const widths = ["w-3/4", "w-1/2", "w-2/3", "w-3/5", "w-4/5", "w-1/2", "w-2/3", "w-3/4"];
+  return (
+    <div aria-busy="true" aria-label="Loading transactions">
+      <Table className="min-w-[760px] table-fixed md:min-w-0">
+        <TableHeader>
+          <TableRow className="hover:bg-transparent">
+            <TableHead className="w-[132px]">Date</TableHead>
+            <TableHead>Vendor</TableHead>
+            <TableHead className="w-[200px] md:max-lg:hidden">Account</TableHead>
+            <TableHead className="w-[220px] md:max-lg:hidden">Category</TableHead>
+            <TableHead className="w-[140px] text-right">Amount</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {widths.map((width, i) => (
+            <TableRow key={i} className="hover:bg-transparent">
+              <TableCell>
+                <Skeleton className="h-3.5 w-12" />
+              </TableCell>
+              <TableCell>
+                <Skeleton className={cn("h-3.5", width)} />
+              </TableCell>
+              <TableCell className="md:max-lg:hidden">
+                <Skeleton className="h-3.5 w-28" />
+              </TableCell>
+              <TableCell className="md:max-lg:hidden">
+                <Skeleton className="h-3.5 w-32" />
+              </TableCell>
+              <TableCell>
+                <Skeleton className="ml-auto h-3.5 w-16" />
+              </TableCell>
+            </TableRow>
+          ))}
+        </TableBody>
+      </Table>
+      <div className="flex h-[53px] items-center border-t border-border px-4">
+        <Skeleton className="h-3.5 w-40" />
+      </div>
+    </div>
   );
 }
 
@@ -90,6 +143,12 @@ function TransactionTable({ businessId, filters }: { businessId: string; filters
   );
   const rows = data.pages.flatMap((page) => page.items);
   const filtered = Object.keys(filters).length > 0;
+
+  // Changing a filter keeps these rows on screen (React holds visible content during a router
+  // transition) until the new ones arrive; dim them meanwhile.
+  const navigation = useNavigation();
+  const { pathname } = useLocation();
+  const updating = navigation.state !== "idle" && navigation.location?.pathname === pathname;
   const allCad = rows.length > 0 && rows.every((row) => row.currency === "CAD");
 
   // "All" tab: loaded pending rows first under PENDING, the rest under CLEARED (SPEC → Pending).
@@ -104,6 +163,7 @@ function TransactionTable({ businessId, filters }: { businessId: string; filters
       pending={filters.pending}
       aside={allCad && <span className="pr-2 text-xs text-muted-foreground">All amounts in CAD</span>}
     >
+      <div aria-busy={updating} className={cn("transition-opacity", updating && "opacity-60")}>
       {rows.length === 0 ? (
         filtered ? (
           <Empty className="py-12">
@@ -177,6 +237,7 @@ function TransactionTable({ businessId, filters }: { businessId: string; filters
             </Button>
           )}
         </div>
+      </div>
       </div>
     </TableCard>
   );

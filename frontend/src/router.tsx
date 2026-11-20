@@ -10,12 +10,13 @@ import { businessLoader, homeLoader } from "@/routes/business-loaders";
 import { finishSetupAction, requireDraftLoader } from "@/routes/onboarding-loaders";
 import { transactionsLoader } from "@/routes/transactions-loaders";
 import { connectionsAction, connectionsLoader } from "@/routes/connections-loaders";
+import { pageModules } from "@/routes/page-modules";
 
 /**
  * Code-splitting: the shell and every page component load on demand, so the sign-in pages don't
  * download the app and each page brings its own libraries (e.g. the calendar on Transactions).
  * Loaders and actions stay in this bundle, so React Router fetches a page's code and its data
- * in parallel.
+ * in parallel; the shell also preloads every page chunk when idle (page-modules.ts).
  */
 const lazyComponent = (load: () => Promise<{ default: ComponentType }>) => ({
   Component: async () => (await load()).default,
@@ -46,28 +47,28 @@ export const router = createBrowserRouter([
       // ── Protected ──
       {
         middleware: [requireAuth],
-        lazy: lazyComponent(() => import("@/routes/dashboard-layout")),
+        lazy: lazyComponent(pageModules.dashboardLayout),
         loader: dashboardLoader,
         children: [
           // `/` decides where the user goes: their business, a picker, or the choose page.
-          { index: true, lazy: lazyComponent(() => import("@/routes/home")), loader: homeLoader, handle: { title: "Businesses" } satisfies RouteHandle },
+          { index: true, lazy: lazyComponent(pageModules.home), loader: homeLoader, handle: { title: "Businesses" } satisfies RouteHandle },
 
           // Business onboarding. Reachable with or without a business (it's how a second one is made).
-          { path: "onboarding/business", lazy: lazyComponent(() => import("@/routes/onboarding-business")), handle: { title: "New business" } satisfies RouteHandle },
-          { path: "onboarding/accounts", lazy: lazyComponent(() => import("@/routes/onboarding-accounts")), loader: requireDraftLoader, handle: { title: "New business" } satisfies RouteHandle },
-          { path: "onboarding/review", lazy: lazyComponent(() => import("@/routes/onboarding-review")), loader: requireDraftLoader, action: finishSetupAction, handle: { title: "New business" } satisfies RouteHandle },
+          { path: "onboarding/business", lazy: lazyComponent(pageModules.onboardingBusiness), handle: { title: "New business" } satisfies RouteHandle },
+          { path: "onboarding/accounts", lazy: lazyComponent(pageModules.onboardingAccounts), loader: requireDraftLoader, handle: { title: "New business" } satisfies RouteHandle },
+          { path: "onboarding/review", lazy: lazyComponent(pageModules.onboardingReview), loader: requireDraftLoader, action: finishSetupAction, handle: { title: "New business" } satisfies RouteHandle },
 
           // Every business page carries its business in the URL. No top-level aliases.
           {
             path: "b/:businessId",
             loader: businessLoader, // 404 → ErrorPage "Not found"
             children: [
-              { index: true, lazy: lazyComponent(() => import("@/routes/overview")), handle: { title: "Overview" } satisfies RouteHandle },
-              { path: "reconciliation", lazy: lazyComponent(() => import("@/routes/reconciliation")), handle: { title: "Reconciliation" } satisfies RouteHandle },
-              { path: "transactions", lazy: lazyComponent(() => import("@/routes/transactions")), loader: transactionsLoader, handle: { title: "Transactions" } satisfies RouteHandle },
-              { path: "invoices", lazy: lazyComponent(() => import("@/routes/invoices")), handle: { title: "Invoices" } satisfies RouteHandle },
-              { path: "connections", lazy: lazyComponent(() => import("@/routes/connections")), loader: connectionsLoader, action: connectionsAction, handle: { title: "Connections" } satisfies RouteHandle },
-              { path: "settings", lazy: lazyComponent(() => import("@/routes/settings")), handle: { title: "Settings" } satisfies RouteHandle },
+              { index: true, lazy: lazyComponent(pageModules.overview), handle: { title: "Overview" } satisfies RouteHandle },
+              { path: "reconciliation", lazy: lazyComponent(pageModules.reconciliation), handle: { title: "Reconciliation" } satisfies RouteHandle },
+              { path: "transactions", lazy: lazyComponent(pageModules.transactions), loader: transactionsLoader, handle: { title: "Transactions" } satisfies RouteHandle },
+              { path: "invoices", lazy: lazyComponent(pageModules.invoices), handle: { title: "Invoices" } satisfies RouteHandle },
+              { path: "connections", lazy: lazyComponent(pageModules.connections), loader: connectionsLoader, action: connectionsAction, handle: { title: "Connections" } satisfies RouteHandle },
+              { path: "settings", lazy: lazyComponent(pageModules.settings), handle: { title: "Settings" } satisfies RouteHandle },
             ],
           },
         ],

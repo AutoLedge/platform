@@ -31,15 +31,16 @@ export function parseTransactionFilters(params: URLSearchParams): TransactionFil
 }
 
 // `/b/:businessId/transactions`. The business loader above has already checked membership.
-export async function transactionsLoader({ request, params }: LoaderFunctionArgs) {
+// Render-as-you-fetch: the loader STARTS the queries without awaiting them, so the page shows at
+// once and its Suspense boundaries show skeletons until the data arrives (cached data shows
+// straight away). The page's useSuspense* hooks pick up these same in-flight requests.
+export function transactionsLoader({ request, params }: LoaderFunctionArgs) {
   const businessId = params.businessId!;
   const filters = parseTransactionFilters(new URL(request.url).searchParams);
   // The API answers 422 for this; say so on the page instead of asking.
   const invalidRange = Boolean(filters.from && filters.to && filters.from > filters.to);
 
-  await Promise.all([
-    queryClient.ensureQueryData(accountsQuery(businessId)),
-    invalidRange ? null : queryClient.ensureInfiniteQueryData(transactionsQuery(businessId, filters)),
-  ]);
+  void queryClient.prefetchQuery(accountsQuery(businessId));
+  if (!invalidRange) void queryClient.prefetchInfiniteQuery(transactionsQuery(businessId, filters));
   return { filters, invalidRange };
 }

@@ -4,12 +4,12 @@ import { accountsQuery, plaidItemsQuery } from "@/queries/plaid";
 import { handlePlaidIntent, readPlaidIntent } from "@/routes/plaid-actions";
 
 // `/b/:businessId/connections`. The business loader above has already checked membership.
-export async function connectionsLoader({ params }: LoaderFunctionArgs) {
+// Render-as-you-fetch: start the queries without awaiting them; the page's Suspense boundaries
+// show skeletons until they resolve (see transactions-loaders.ts).
+export function connectionsLoader({ params }: LoaderFunctionArgs) {
   const businessId = params.businessId!;
-  await Promise.all([
-    queryClient.ensureQueryData(plaidItemsQuery(businessId)),
-    queryClient.ensureQueryData(accountsQuery(businessId)),
-  ]);
+  void queryClient.prefetchQuery(plaidItemsQuery(businessId));
+  void queryClient.prefetchQuery(accountsQuery(businessId));
   return null;
 }
 

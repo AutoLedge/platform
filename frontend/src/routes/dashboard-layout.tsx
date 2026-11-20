@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import { Link, Outlet, useLoaderData, useMatch, useParams, useSubmit } from "react-router";
 import BusinessSwitcher from "@/components/shell/business-switcher";
 import { businessPath, mainRoutes, setupRoutes, type NavRoute } from "@/components/shell/nav-routes";
@@ -17,6 +17,7 @@ import { Toaster } from "@/components/ui/toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import type { dashboardLoader } from "@/routes/dashboard-loaders";
+import { preloadPagesWhenIdle } from "@/routes/page-modules";
 
 const CommandPalette = lazy(loadCommandPalette);
 
@@ -120,6 +121,9 @@ export default function DashboardLayout() {
     else openPalette();
   }, [paletteOpen, openPalette]);
   usePaletteShortcut(togglePalette);
+
+  // Once the shell is up, fetch every page's code in the background so navigation never waits on it.
+  useEffect(() => preloadPagesWhenIdle(), []);
 
   return (
     <TooltipProvider>

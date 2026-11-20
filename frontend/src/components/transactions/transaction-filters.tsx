@@ -1,5 +1,6 @@
-import { useState, type FormEvent, type ReactNode } from "react";
+import { Suspense, useState, type FormEvent, type ReactNode } from "react";
 import { Link } from "react-router";
+import { useSuspenseQuery } from "@tanstack/react-query";
 import { CheckIcon, ChevronDownIcon, SearchIcon } from "lucide-react";
 import type { DateRange as DayPickerRange } from "react-day-picker";
 import { Button } from "@/components/ui/button";
@@ -15,14 +16,13 @@ import {
 import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Separator } from "@/components/ui/separator";
-import type { Schemas } from "@/lib/api";
+import { Skeleton } from "@/components/ui/skeleton";
 import { DATE_PRESETS, formatRange, matchPreset, toISODate } from "@/lib/date-ranges";
 import { formatAccount, parseLocalDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
+import { accountsQuery } from "@/queries/plaid";
 import type { TransactionFilters } from "@/queries/transactions";
 import { useFilterUrl } from "./filter-url";
-
-type Account = Schemas["AccountResponse"];
 
 // Tablet (768–1023): 40-tall filter buttons, 44-tall search (touch).
 const filterButtonClass = "h-9 shrink-0 gap-2 md:max-lg:h-10";
@@ -180,8 +180,10 @@ function PresetButton({
 
 // ── Accounts → account_id ──
 
-export function AccountsFilter({ accounts, accountId }: { accounts: Account[]; accountId: string | undefined }) {
+export function AccountsFilter({ businessId, accountId }: { businessId: string; accountId: string | undefined }) {
   const { apply } = useFilterUrl();
+  // Suspends until the loader's prefetch resolves; FilterRow shows a skeleton button meanwhile.
+  const { data: accounts } = useSuspenseQuery(accountsQuery(businessId));
   const current = accounts.find((a) => a.id === accountId);
   return (
     <DropdownMenu>
@@ -245,13 +247,15 @@ export function StatusTabs({ pending }: { pending: TransactionFilters["pending"]
 }
 
 /** Filter row: search, Date, spacer, Accounts. One horizontally scrolling row on tablet. */
-export function FilterRow({ filters, accounts }: { filters: TransactionFilters; accounts: Account[] }) {
+export function FilterRow({ filters, businessId }: { filters: TransactionFilters; businessId: string }) {
   return (
     <div className="flex flex-wrap items-center gap-2 md:max-lg:-mx-1 md:max-lg:flex-nowrap md:max-lg:overflow-x-auto md:max-lg:px-1 md:max-lg:py-1">
       <TableSearch q={filters.q} />
       <DateFilter from={filters.from} to={filters.to} />
       <span className="flex-1" />
-      <AccountsFilter accounts={accounts} accountId={filters.account_id} />
+      <Suspense fallback={<Skeleton className={cn(filterButtonClass, "w-[200px]")} aria-label="Loading accounts" />}>
+        <AccountsFilter businessId={businessId} accountId={filters.account_id} />
+      </Suspense>
     </div>
   );
 }

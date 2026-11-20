@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { Suspense, useEffect, useRef, useState } from 'react'
 import { useFetcher, useParams } from 'react-router'
 import { useSuspenseQuery } from '@tanstack/react-query'
 import type { Schemas } from '@/lib/api'
@@ -6,6 +6,7 @@ import { formatDate, formatDateTime, formatMask, formatMoney } from '@/lib/forma
 import { businessQuery } from '@/queries/businesses'
 import { accountsQuery, plaidItemsQuery } from '@/queries/plaid'
 import PlaidLinkButton from '@/components/PlaidLinkButton'
+import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from '@/components/ui/toast'
 import { StatusBadge } from '@/components/LedgerControls'
 import type { PlaidActionResult, PlaidIntent } from '@/routes/plaid-actions'
@@ -37,22 +38,10 @@ function submitJson(fetcher: ReturnType<typeof useFetcher>, payload: PlaidIntent
 
 // ── Route component ──
 
+// The heading renders at once; the header action and the list suspend until the loader's
+// prefetches resolve, with skeletons meanwhile (render-as-you-fetch, see connections-loaders.ts).
 export default function Connections() {
   const businessId = useParams().businessId!
-  const { data: business } = useSuspenseQuery(businessQuery(businessId))
-  const { data: items } = useSuspenseQuery(plaidItemsQuery(businessId))
-  const { data: accounts } = useSuspenseQuery(accountsQuery(businessId))
-
-  const isOwner = business.role === 'owner'
-  const disconnected = accounts.filter((account) => !account.connected)
-  const connectButton = (
-    <PlaidLinkButton
-      key={businessId}
-      businessId={businessId}
-      actionPath={`/b/${businessId}/connections`}
-      className="ledger-header-action connections-connect"
-    />
-  )
 
   return (
     <main className="ledger-page connections-page">
@@ -61,13 +50,65 @@ export default function Connections() {
           <h1>Connections</h1>
           <p>The bank accounts AutoLedge imports transactions from</p>
         </div>
-        {isOwner ? (
-          items.length > 0 && connectButton
-        ) : (
-          <p className="connections-note">Only owners can connect or remove banks.</p>
-        )}
+        <Suspense fallback={<Skeleton className="h-10 w-40" />}>
+          <HeaderAction businessId={businessId} />
+        </Suspense>
       </div>
+      <Suspense fallback={<ConnectionsSkeleton />}>
+        <ConnectionsList businessId={businessId} />
+      </Suspense>
+    </main>
+  )
+}
 
+function ConnectButton({ businessId }: { businessId: string }) {
+  return (
+    <PlaidLinkButton
+      key={businessId}
+      businessId={businessId}
+      actionPath={`/b/${businessId}/connections`}
+      className="ledger-header-action connections-connect"
+    />
+  )
+}
+
+function HeaderAction({ businessId }: { businessId: string }) {
+  const { data: business } = useSuspenseQuery(businessQuery(businessId))
+  const { data: items } = useSuspenseQuery(plaidItemsQuery(businessId))
+  if (business.role !== 'owner') return <p className="connections-note">Only owners can connect or remove banks.</p>
+  return items.length > 0 ? <ConnectButton businessId={businessId} /> : null
+}
+
+/** Two placeholder cards shaped like a connection (name + status, meta line, account rows). */
+function ConnectionsSkeleton() {
+  return (
+    <div className="connections-list" aria-busy="true" aria-label="Loading connections">
+      {[0, 1].map((i) => (
+        <div key={i} className="ledger-card flex flex-col gap-4 p-5">
+          <div className="flex items-center justify-between">
+            <Skeleton className="h-5 w-48" />
+            <Skeleton className="h-9 w-24" />
+          </div>
+          <Skeleton className="h-3.5 w-64" />
+          <Skeleton className="h-3.5 w-full" />
+          <Skeleton className="h-3.5 w-5/6" />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function ConnectionsList({ businessId }: { businessId: string }) {
+  const { data: business } = useSuspenseQuery(businessQuery(businessId))
+  const { data: items } = useSuspenseQuery(plaidItemsQuery(businessId))
+  const { data: accounts } = useSuspenseQuery(accountsQuery(businessId))
+
+  const isOwner = business.role === 'owner'
+  const disconnected = accounts.filter((account) => !account.connected)
+  const connectButton = <ConnectButton businessId={businessId} />
+
+  return (
+    <>
       {items.length === 0 ? (
         <section className="ledger-card connections-empty">
           <h2>No banks connected yet.</h2>
@@ -84,7 +125,7 @@ export default function Connections() {
       )}
 
       {disconnected.length > 0 && <DisconnectedAccounts accounts={disconnected} />}
-    </main>
+    </>
   )
 }
 
