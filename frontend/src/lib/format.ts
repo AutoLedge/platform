@@ -1,15 +1,9 @@
 const currencyFormat = new Intl.NumberFormat('en-CA', { style: 'currency', currency: 'CAD', currencyDisplay: 'narrowSymbol' })
 const dateFormat = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-const timeFormat = new Intl.DateTimeFormat('en-US', { hour: 'numeric', minute: '2-digit' })
 
 /** "$4,500.00" — always unsigned. */
 export function formatCurrency(amount: number) {
   return currencyFormat.format(Math.abs(amount))
-}
-
-/** "+$4,500.00" / "−$79.99" (U+2212 minus sign, matching the designs). */
-export function formatSignedCurrency(amount: number) {
-  return `${amount < 0 ? '−' : '+'}${formatCurrency(amount)}`
 }
 
 /** "Oct 20, 2026" */
@@ -22,11 +16,6 @@ const shortDateFormat = new Intl.DateTimeFormat('en-US', { month: 'short', day: 
 /** "Oct 20" this year, "Oct 20, 2025" otherwise. */
 export function formatShortDate(date: Date, today = new Date()) {
   return date.getFullYear() === today.getFullYear() ? shortDateFormat.format(date) : dateFormat.format(date)
-}
-
-/** "10:42 AM" */
-export function formatTime(date: Date) {
-  return timeFormat.format(date)
 }
 
 const dateTimeFormat = new Intl.DateTimeFormat('en-US', { dateStyle: 'medium', timeStyle: 'short' })

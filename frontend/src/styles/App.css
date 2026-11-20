@@ -170,13 +170,10 @@
 .auth-heading p { margin: 7px 0 0; color: #78869a; font-size: 13px; }
 .auth-form { display: grid; gap: 17px; }
 .auth-field { min-width: 0; display: grid; gap: 7px; }
-.auth-field label, .role-fieldset legend { color: #253448; font-size: 12px; font-weight: 600; }
+.auth-field label { color: #253448; font-size: 12px; font-weight: 600; }
 .auth-field input { width: 100%; height: 45px; padding: 0 13px; color: #27384c; border: 1px solid #d9e0e9; border-radius: 7px; outline: none; background: #fff; font: inherit; font-size: 13px; transition: border-color .15s ease, box-shadow .15s ease; }
 .auth-field input::placeholder { color: #93a0b0; }
 .auth-field input:focus { border-color: #6594df; box-shadow: 0 0 0 3px #6594df22; }
-.password-input-wrap { position: relative; }
-.password-input-wrap input { padding-right: 44px; }
-.password-visibility { position: absolute; top: 0; right: 5px; width: 37px; height: 45px; display: grid; place-items: center; color: #8391a3; border: 0; background: transparent; cursor: pointer; }
 .auth-switch a { padding: 0; color: #347fe5; font: inherit; font-size: 12px; font-weight: 550; text-decoration: none; }
 .auth-switch a:hover { text-decoration: underline; }
 .auth-submit { min-height: 46px; margin-top: 4px; color: #fff; border: 0; border-radius: 7px; background: #2877e9; box-shadow: 0 2px 4px #2877e91c; font: inherit; font-size: 14px; font-weight: 600; cursor: pointer; transition: background .15s ease, transform .15s ease; }
@@ -186,7 +183,6 @@
 .auth-switch { margin-top: 17px; padding-top: 16px; display: flex; justify-content: center; gap: 4px; border-top: 1px solid #e8edf3; color: #69798d; font-size: 12px; }
 .signup-name-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
 .auth-field-hint { color: #8290a0; font-size: 10px; line-height: 1.4; }
-.password-rules { margin: 1px 0 0; padding-left: 17px; display: grid; gap: 3px; color: #78869a; font-size: 10px; }
 .terms-option { display: flex; align-items: flex-start; gap: 9px; color: #4e5d6f; font-size: 11px; line-height: 1.45; cursor: pointer; }
 .terms-option input { width: 16px; height: 16px; flex: 0 0 16px; margin: 0; accent-color: #2877e9; }
 .auth-error { margin: 0; padding: 10px 12px; color: #963f3f; border: 1px solid #f0d2d0; border-radius: 7px; background: #fff3f2; font-size: 11px; line-height: 1.45; }
