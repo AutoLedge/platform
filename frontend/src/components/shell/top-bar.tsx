@@ -90,12 +90,14 @@ function PageBreadcrumb() {
   );
 }
 
-function GlobalSearchButton({ onClick }: { onClick: () => void }) {
-  // Opens the command palette (also Ctrl/⌘ K).
+function GlobalSearchButton({ onClick, onPreload }: { onClick: () => void; onPreload: () => void }) {
+  // Opens the command palette (also Ctrl/⌘ K). Hover/focus starts loading its code early.
   return (
     <Button
       variant="outline"
       onClick={onClick}
+      onPointerEnter={onPreload}
+      onFocus={onPreload}
       className="hidden w-[220px] justify-start gap-2 border-border bg-card px-2.5 font-normal text-muted-foreground md:inline-flex"
       aria-label="Search AutoLedge"
       aria-keyshortcuts="Control+K Meta+K"
@@ -208,10 +210,12 @@ function AccountMenu({ user, onSignOut }: { user: DashboardUser; onSignOut: () =
 export default function TopBar({
   user,
   onOpenSearch,
+  onPreloadSearch,
   onSignOut,
 }: {
   user: DashboardUser;
   onOpenSearch: () => void;
+  onPreloadSearch: () => void;
   onSignOut: () => void;
 }) {
   return (
@@ -219,7 +223,7 @@ export default function TopBar({
       <SidebarToggle />
       <PageBreadcrumb />
       <span className="flex-1" />
-      <GlobalSearchButton onClick={onOpenSearch} />
+      <GlobalSearchButton onClick={onOpenSearch} onPreload={onPreloadSearch} />
       <Notifications />
       <AccountMenu user={user} onSignOut={onSignOut} />
     </header>

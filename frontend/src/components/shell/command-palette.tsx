@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useState } from "react";
 import { useNavigate, useParams } from "react-router";
 import { Building2Icon, SearchIcon } from "lucide-react";
 import { Command, CommandDialog, CommandGroup, CommandInput, CommandItem, CommandList } from "@/components/ui/command";
@@ -12,39 +12,20 @@ import { businessPath, mainRoutes, setupRoutes } from "./nav-routes";
 export default function CommandPalette({ open, onOpenChange }: { open: boolean; onOpenChange: (open: boolean) => void }) {
   const navigate = useNavigate();
   const { businessId } = useParams();
+  // The shell remounts this component on every open (key), so each open starts with an empty query.
+  // The Ctrl/⌘ K shortcut lives in the shell (palette-loader.ts), outside this lazily loaded chunk.
   const [query, setQuery] = useState("");
   const text = query.trim().slice(0, 100);
 
-  // Every close goes through here, so the next open (shortcut, button) starts empty.
-  const setOpen = useCallback(
-    (next: boolean) => {
-      if (!next) setQuery("");
-      onOpenChange(next);
-    },
-    [onOpenChange],
-  );
-
-  // Ctrl/⌘ K toggles the palette from anywhere in the shell.
-  useEffect(() => {
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key.toLowerCase() === "k" && (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey) {
-        event.preventDefault();
-        setOpen(!open);
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [open, setOpen]);
-
   function go(to: string) {
-    setOpen(false);
+    onOpenChange(false);
     navigate(to);
   }
 
   return (
     <CommandDialog
       open={open}
-      onOpenChange={setOpen}
+      onOpenChange={onOpenChange}
       title="Search AutoLedge"
       description="Jump to a page or search transactions"
     >

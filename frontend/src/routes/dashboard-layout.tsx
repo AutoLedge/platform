@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { lazy, Suspense, useCallback, useState } from "react";
 import { Link, Outlet, useLoaderData, useMatch, useParams, useSubmit } from "react-router";
 import BusinessSwitcher from "@/components/shell/business-switcher";
-import CommandPalette from "@/components/shell/command-palette";
 import { businessPath, mainRoutes, setupRoutes, type NavRoute } from "@/components/shell/nav-routes";
+import { loadCommandPalette, usePaletteShortcut } from "@/components/shell/palette-loader";
 import TopBar from "@/components/shell/top-bar";
 import {
   Sidebar,
@@ -17,6 +17,8 @@ import { Toaster } from "@/components/ui/toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import type { dashboardLoader } from "@/routes/dashboard-loaders";
+
+const CommandPalette = lazy(loadCommandPalette);
 
 function NavItem({ route, businessId }: { route: NavRoute; businessId: string | undefined }) {
   const target = businessId ? businessPath(businessId, route.path) : "/";
@@ -107,6 +109,17 @@ export default function DashboardLayout() {
   const isTablet = useMediaQuery("(min-width: 768px) and (max-width: 1023px)");
   const [desktopOpen, setDesktopOpen] = useState(readSidebarOpen);
   const [paletteOpen, setPaletteOpen] = useState(false);
+  // Bumped on every open: remounts the palette (fresh query) and, the first time, triggers its chunk.
+  const [paletteKey, setPaletteKey] = useState(0);
+  const openPalette = useCallback(() => {
+    setPaletteKey((key) => key + 1);
+    setPaletteOpen(true);
+  }, []);
+  const togglePalette = useCallback(() => {
+    if (paletteOpen) setPaletteOpen(false);
+    else openPalette();
+  }, [paletteOpen, openPalette]);
+  usePaletteShortcut(togglePalette);
 
   return (
     <TooltipProvider>
@@ -127,14 +140,19 @@ export default function DashboardLayout() {
         <div className="flex min-w-0 flex-1 flex-col bg-background">
           <TopBar
             user={user}
-            onOpenSearch={() => setPaletteOpen(true)}
+            onOpenSearch={openPalette}
+            onPreloadSearch={() => void loadCommandPalette().catch(() => {}) /* a failed preload retries on open */}
             onSignOut={() => submit(null, { method: "post", action: "/logout" })}
           />
           <div className="relative min-h-0 flex-1 overflow-y-auto">
             <Outlet />
           </div>
         </div>
-        <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
+        {paletteKey > 0 && (
+          <Suspense fallback={null}>
+            <CommandPalette key={paletteKey} open={paletteOpen} onOpenChange={setPaletteOpen} />
+          </Suspense>
+        )}
       </SidebarProvider>
     </TooltipProvider>
   );
