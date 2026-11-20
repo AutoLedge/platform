@@ -37,6 +37,11 @@ export const router = createBrowserRouter([
       // ── Always reachable ──
       { path: "/logout", action: logoutAction },
 
+      // ── Development only: styled shadcn components with sample content. Stripped from production builds. ──
+      ...(import.meta.env.DEV
+        ? [{ path: "/dev/components", lazy: async () => ({ Component: (await import("@/routes/dev-components")).default }) }]
+        : []),
+
       // ── Protected ──
       {
         middleware: [requireAuth],
