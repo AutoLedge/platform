@@ -1,5 +1,5 @@
 import { Suspense } from "react";
-import { Link, useLoaderData, useLocation, useNavigation, useParams } from "react-router";
+import { Link, useLoaderData, useParams } from "react-router";
 import { useSuspenseInfiniteQuery } from "@tanstack/react-query";
 import { ClockIcon, LinkIcon, SearchXIcon, ArrowLeftRightIcon } from "lucide-react";
 import { FilterRow, StatusTabs } from "@/components/transactions/transaction-filters";
@@ -56,7 +56,11 @@ export default function Transactions() {
           </p>
         </TableCard>
       ) : (
+        // Keyed by the filters: each filter change mounts a NEW boundary, which shows the skeleton
+        // (React would otherwise keep the old rows on screen during the router's transition).
+        // Load more keeps the same key; filters cached in the last 30 s render without a skeleton.
         <Suspense
+          key={JSON.stringify(filters)}
           fallback={
             <TableCard pending={filters.pending}>
               <TableSkeleton />
@@ -91,8 +95,14 @@ function TableSkeleton() {
               <TableCell>
                 <Skeleton className="h-3.5 w-12" />
               </TableCell>
+              {/* Two lines like a real vendor cell: merchant (18px line) + description (16px line). */}
               <TableCell>
-                <Skeleton className={cn("h-3.5", width)} />
+                <span className="flex h-[18px] items-center">
+                  <Skeleton className={cn("h-3.5", width)} />
+                </span>
+                <span className="flex h-4 items-center">
+                  <Skeleton className="h-3 w-2/5" />
+                </span>
               </TableCell>
               <TableCell className="md:max-lg:hidden">
                 <Skeleton className="h-3.5 w-28" />
@@ -107,7 +117,7 @@ function TableSkeleton() {
           ))}
         </TableBody>
       </Table>
-      <div className="flex h-[53px] items-center border-t border-border px-4">
+      <div className="flex min-h-[53px] items-center border-t border-border px-4">
         <Skeleton className="h-3.5 w-40" />
       </div>
     </div>
@@ -143,12 +153,6 @@ function TransactionTable({ businessId, filters }: { businessId: string; filters
   );
   const rows = data.pages.flatMap((page) => page.items);
   const filtered = Object.keys(filters).length > 0;
-
-  // Changing a filter keeps these rows on screen (React holds visible content during a router
-  // transition) until the new ones arrive; dim them meanwhile.
-  const navigation = useNavigation();
-  const { pathname } = useLocation();
-  const updating = navigation.state !== "idle" && navigation.location?.pathname === pathname;
   const allCad = rows.length > 0 && rows.every((row) => row.currency === "CAD");
 
   // "All" tab: loaded pending rows first under PENDING, the rest under CLEARED (SPEC → Pending).
@@ -163,7 +167,6 @@ function TransactionTable({ businessId, filters }: { businessId: string; filters
       pending={filters.pending}
       aside={allCad && <span className="pr-2 text-xs text-muted-foreground">All amounts in CAD</span>}
     >
-      <div aria-busy={updating} className={cn("transition-opacity", updating && "opacity-60")}>
       {rows.length === 0 ? (
         filtered ? (
           <Empty className="py-12">
@@ -221,7 +224,8 @@ function TransactionTable({ businessId, filters }: { businessId: string; filters
         </Table>
       )}
 
-      <div className="flex items-center justify-between gap-4 border-t border-border px-4 py-2.5">
+      {/* Same height with or without "Load more" (and as the skeleton footer): no shift. */}
+      <div className="flex min-h-[53px] items-center justify-between gap-4 border-t border-border px-4 py-2.5">
         <p className="text-[13px] text-muted-foreground">
           Showing {rows.length} {rows.length === 1 ? "transaction" : "transactions"}
         </p>
@@ -237,7 +241,6 @@ function TransactionTable({ businessId, filters }: { businessId: string; filters
             </Button>
           )}
         </div>
-      </div>
       </div>
     </TableCard>
   );

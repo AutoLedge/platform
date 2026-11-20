@@ -148,7 +148,9 @@ export default function DashboardLayout() {
             onPreloadSearch={() => void loadCommandPalette().catch(() => {}) /* a failed preload retries on open */}
             onSignOut={() => submit(null, { method: "post", action: "/logout" })}
           />
-          <div className="relative min-h-0 flex-1 overflow-y-auto">
+          {/* scrollbar-gutter: the scrollbar's space is always reserved, so content doesn't shift
+              sideways when a page (or a skeleton) becomes shorter or taller than the window. */}
+          <div className="relative min-h-0 flex-1 overflow-y-auto [scrollbar-gutter:stable]">
             <Outlet />
           </div>
         </div>
