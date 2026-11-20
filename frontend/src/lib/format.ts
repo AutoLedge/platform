@@ -17,6 +17,13 @@ export function formatDate(date: Date) {
   return dateFormat.format(date)
 }
 
+const shortDateFormat = new Intl.DateTimeFormat('en-US', { month: 'short', day: 'numeric' })
+
+/** "Oct 20" this year, "Oct 20, 2025" otherwise. */
+export function formatShortDate(date: Date, today = new Date()) {
+  return date.getFullYear() === today.getFullYear() ? shortDateFormat.format(date) : dateFormat.format(date)
+}
+
 /** "10:42 AM" */
 export function formatTime(date: Date) {
   return timeFormat.format(date)
@@ -44,6 +51,11 @@ export function formatMoney(value: string, currency: string | null, { unsigned =
     }
   }
   return new Intl.NumberFormat('en-CA', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)
+}
+
+/** "Chequing ••4821", or just the name when there is no mask. */
+export function formatAccount(name: string, mask: string | null) {
+  return mask ? `${name} ••${mask}` : name
 }
 
 /** "•••• 1234", or "" when there is no mask. */

@@ -1,269 +1,241 @@
-import type { FormEvent } from 'react'
-import { Link, useLoaderData, useLocation, useParams, useSubmit } from 'react-router'
-import { useSuspenseInfiniteQuery, useSuspenseQuery } from '@tanstack/react-query'
-import type { Schemas } from '@/lib/api'
-import { formatDate, formatMoney, parseLocalDate } from '@/lib/format'
-import { StatusBadge } from '@/components/LedgerControls'
-import { accountsQuery } from '@/queries/plaid'
-import { transactionsQuery, type TransactionFilters } from '@/queries/transactions'
-import type { transactionsLoader } from '@/routes/transactions-loaders'
-import '@/styles/transactions.css'
+import { Link, useLoaderData, useParams } from "react-router";
+import { useSuspenseInfiniteQuery, useSuspenseQuery } from "@tanstack/react-query";
+import { ClockIcon, LinkIcon, SearchXIcon, ArrowLeftRightIcon } from "lucide-react";
+import { FilterRow, StatusTabs } from "@/components/transactions/transaction-filters";
+import { Button } from "@/components/ui/button";
+import { Empty, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from "@/components/ui/empty";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import type { Schemas } from "@/lib/api";
+import { formatAccount, formatMoney, formatShortDate, parseLocalDate } from "@/lib/format";
+import { cn } from "@/lib/utils";
+import { accountsQuery } from "@/queries/plaid";
+import { transactionsQuery, type TransactionFilters } from "@/queries/transactions";
+import type { transactionsLoader } from "@/routes/transactions-loaders";
 
-type Transaction = Schemas['TransactionResponse']
+type Transaction = Schemas["TransactionResponse"];
 
 // Plaid's primary categories. The API sends the detailed one (e.g. FOOD_AND_DRINK_COFFEE),
 // whose prefix is one of these.
 const PRIMARY_CATEGORIES = [
-  'INCOME', 'TRANSFER_IN', 'TRANSFER_OUT', 'LOAN_PAYMENTS', 'LOAN_DISBURSEMENTS', 'BANK_FEES',
-  'ENTERTAINMENT', 'FOOD_AND_DRINK', 'GENERAL_MERCHANDISE', 'HOME_IMPROVEMENT', 'MEDICAL',
-  'PERSONAL_CARE', 'GENERAL_SERVICES', 'GOVERNMENT_AND_NON_PROFIT', 'TRANSPORTATION', 'TRAVEL',
-  'RENT_AND_UTILITIES',
-]
+  "INCOME", "TRANSFER_IN", "TRANSFER_OUT", "LOAN_PAYMENTS", "LOAN_DISBURSEMENTS", "BANK_FEES",
+  "ENTERTAINMENT", "FOOD_AND_DRINK", "GENERAL_MERCHANDISE", "HOME_IMPROVEMENT", "MEDICAL",
+  "PERSONAL_CARE", "GENERAL_SERVICES", "GOVERNMENT_AND_NON_PROFIT", "TRANSPORTATION", "TRAVEL",
+  "RENT_AND_UTILITIES",
+];
 
 function sentenceCase(code: string) {
-  const words = code.toLowerCase().replace(/_/g, ' ').trim()
-  return words.charAt(0).toUpperCase() + words.slice(1)
+  const words = code.toLowerCase().replace(/_/g, " ").trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
 /** "FOOD_AND_DRINK_COFFEE" → "Food and drink · Coffee". */
 function formatCategory(category: string | null) {
-  if (!category) return '—'
-  const primary = PRIMARY_CATEGORIES.find((prefix) => category.startsWith(`${prefix}_`))
-  if (!primary) return sentenceCase(category)
-  return `${sentenceCase(primary)} · ${sentenceCase(category.slice(primary.length + 1))}`
-}
-
-function formatAccount(name: string, mask: string | null) {
-  return mask ? `${name} ••${mask}` : name
+  if (!category) return "—";
+  const primary = PRIMARY_CATEGORIES.find((prefix) => category.startsWith(`${prefix}_`));
+  if (!primary) return sentenceCase(category);
+  return `${sentenceCase(primary)} · ${sentenceCase(category.slice(primary.length + 1))}`;
 }
 
 // ── Route component ──
 
 export default function Transactions() {
-  const businessId = useParams().businessId!
-  const { filters, invalidRange } = useLoaderData<typeof transactionsLoader>()
-  const pagePath = `/b/${businessId}/transactions`
+  const businessId = useParams().businessId!;
+  const { filters, invalidRange } = useLoaderData<typeof transactionsLoader>();
+  const { data: accounts } = useSuspenseQuery(accountsQuery(businessId));
 
   return (
-    <main className="ledger-page">
-      <div className="ledger-header">
-        <div className="ledger-intro">
-          <h1>Transactions</h1>
-          <p>Bank activity imported from your connected accounts</p>
-        </div>
-      </div>
-
-      <TransactionFiltersForm businessId={businessId} filters={filters} pagePath={pagePath} />
-
-      <section className="ledger-card" aria-label="Bank transactions">
-        {invalidRange ? (
-          <p className="ledger-empty transactions-message" role="alert">
+    // SPEC.md → Transactions page: no visible title (the breadcrumb names the page).
+    <main className="mx-auto flex w-full max-w-[1240px] flex-col gap-4 px-8 pt-6 pb-10 max-md:px-4">
+      <h1 className="sr-only">Transactions</h1>
+      <FilterRow filters={filters} accounts={accounts} />
+      {invalidRange ? (
+        <TableCard pending={filters.pending}>
+          <p role="alert" className="px-4 py-10 text-center text-[13px] text-destructive">
             'From' must be on or before 'To'.
           </p>
-        ) : (
-          <TransactionTable businessId={businessId} filters={filters} pagePath={pagePath} />
-        )}
-      </section>
+        </TableCard>
+      ) : (
+        <TransactionTable businessId={businessId} filters={filters} />
+      )}
     </main>
-  )
+  );
 }
 
-// ── Filters (kept in the URL) ──
-
-function TransactionFiltersForm({
-  businessId,
-  filters,
-  pagePath,
+function TableCard({
+  pending,
+  aside,
+  children,
 }: {
-  businessId: string
-  filters: TransactionFilters
-  pagePath: string
+  pending: TransactionFilters["pending"];
+  aside?: React.ReactNode;
+  children: React.ReactNode;
 }) {
-  const { data: accounts } = useSuspenseQuery(accountsQuery(businessId))
-  const submit = useSubmit()
-  const { search } = useLocation()
-
-  // Leave empty fields out of the URL, so a cleared field doesn't linger as `?q=`.
-  function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    const params = new URLSearchParams()
-    for (const [name, value] of new FormData(event.currentTarget)) {
-      if (typeof value === 'string' && value.trim()) params.set(name, value.trim())
-    }
-    submit(params, { method: 'get', action: pagePath })
-  }
-
   return (
-    // Keyed by the URL so Back/Forward refill the fields.
-    <form key={search} method="get" action={pagePath} className="ledger-filters transactions-filters" onSubmit={handleSubmit}>
-      <label className="ledger-filter transactions-filter-date">
-        <span className="ledger-filter-label">From</span>
-        <input className="transactions-input" type="date" name="from" defaultValue={filters.from ?? ''} />
-      </label>
-      <label className="ledger-filter transactions-filter-date">
-        <span className="ledger-filter-label">To</span>
-        <input className="transactions-input" type="date" name="to" defaultValue={filters.to ?? ''} />
-      </label>
-      <label className="ledger-filter ledger-filter-medium">
-        <span className="ledger-filter-label">Account</span>
-        <span className="ledger-select ledger-filter-control">
-          <select name="account_id" defaultValue={filters.account_id ?? ''}>
-            <option value="">All accounts</option>
-            {accounts.map((account) => (
-              <option key={account.id} value={account.id}>
-                {formatAccount(account.name, account.mask)}
-                {account.connected ? '' : ' (disconnected)'}
-              </option>
-            ))}
-          </select>
-          <span className="ledger-select-arrow" aria-hidden="true" />
-        </span>
-      </label>
-      <label className="ledger-filter transactions-filter-status">
-        <span className="ledger-filter-label">Status</span>
-        <span className="ledger-select ledger-filter-control">
-          <select name="pending" defaultValue={filters.pending ?? ''}>
-            <option value="">All</option>
-            <option value="true">Pending</option>
-            <option value="false">Posted</option>
-          </select>
-          <span className="ledger-select-arrow" aria-hidden="true" />
-        </span>
-      </label>
-      <label className="ledger-filter ledger-filter-medium">
-        <span className="ledger-filter-label">Search</span>
-        <input
-          className="transactions-input"
-          type="search"
-          name="q"
-          maxLength={100}
-          placeholder="Merchant or description"
-          defaultValue={filters.q ?? ''}
-        />
-      </label>
-      <div className="transactions-filter-actions">
-        <button type="submit" className="ledger-header-action transactions-apply">
-          Apply
-        </button>
-        <Link to={pagePath} className="transactions-clear">
-          Clear
-        </Link>
+    <section aria-label="Bank transactions" className="overflow-hidden rounded-lg border border-border bg-card">
+      <div className="flex items-center gap-3 border-b border-border p-2">
+        <StatusTabs pending={pending} />
+        <span className="flex-1" />
+        {aside}
       </div>
-    </form>
-  )
+      {children}
+    </section>
+  );
 }
 
 // ── Results ──
 
-function TransactionTable({
-  businessId,
-  filters,
-  pagePath,
-}: {
-  businessId: string
-  filters: TransactionFilters
-  pagePath: string
-}) {
+function TransactionTable({ businessId, filters }: { businessId: string; filters: TransactionFilters }) {
   const { data, hasNextPage, fetchNextPage, isFetchingNextPage, isFetchNextPageError } = useSuspenseInfiniteQuery(
     transactionsQuery(businessId, filters),
-  )
-  const rows = data.pages.flatMap((page) => page.items)
-  const filtered = Object.keys(filters).length > 0
+  );
+  const rows = data.pages.flatMap((page) => page.items);
+  const filtered = Object.keys(filters).length > 0;
+  const allCad = rows.length > 0 && rows.every((row) => row.currency === "CAD");
+
+  // "All" tab: loaded pending rows first under PENDING, the rest under CLEARED (SPEC → Pending).
+  const pendingRows = filters.pending === undefined ? rows.filter((row) => row.pending) : [];
+  const grouped = pendingRows.length > 0;
+  const clearedRows = grouped ? rows.filter((row) => !row.pending) : rows;
+
+  const pagePath = `/b/${businessId}/transactions`;
 
   return (
-    <>
-      <div className="ledger-table-scroll">
-        <table className="ledger-table transactions-table">
-          <colgroup>
-            <col className="col-date" />
-            <col className="col-vendor" />
-            <col className="col-account" />
-            <col className="col-category" />
-            <col className="col-amount" />
-            <col />
-          </colgroup>
-          <thead>
-            <tr>
-              <th scope="col">Date</th>
-              <th scope="col">Merchant / description</th>
-              <th scope="col">Account</th>
-              <th scope="col">Category</th>
-              <th scope="col" className="align-right">
-                Amount
-              </th>
-              <th scope="col">Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((transaction) => (
+    <TableCard
+      pending={filters.pending}
+      aside={allCad && <span className="pr-2 text-xs text-muted-foreground">All amounts in CAD</span>}
+    >
+      {rows.length === 0 ? (
+        filtered ? (
+          <Empty className="py-12">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <SearchXIcon />
+              </EmptyMedia>
+              <EmptyTitle>No transactions match these filters</EmptyTitle>
+              <EmptyDescription>Try a wider date range or another account, or clear the filters.</EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button variant="outline" render={<Link to={pagePath} />} nativeButton={false}>
+                Clear filters
+              </Button>
+            </EmptyContent>
+          </Empty>
+        ) : (
+          <Empty className="py-12">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <ArrowLeftRightIcon />
+              </EmptyMedia>
+              <EmptyTitle>No transactions yet</EmptyTitle>
+              <EmptyDescription>Connect a bank account and its transactions show up here.</EmptyDescription>
+            </EmptyHeader>
+            <EmptyContent>
+              <Button render={<Link to={`/b/${businessId}/connections`} />} nativeButton={false}>
+                <LinkIcon data-icon="inline-start" />
+                Go to Connections
+              </Button>
+            </EmptyContent>
+          </Empty>
+        )
+      ) : (
+        <Table className="min-w-[760px] table-fixed md:min-w-0">
+          <TableHeader>
+            <TableRow className="hover:bg-transparent">
+              <TableHead className="w-[132px]">Date</TableHead>
+              <TableHead>Vendor</TableHead>
+              <TableHead className="w-[200px] md:max-lg:hidden">Account</TableHead>
+              <TableHead className="w-[220px] md:max-lg:hidden">Category</TableHead>
+              <TableHead className="w-[140px] text-right">Amount</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {grouped && <GroupHeader>{`Pending · ${pendingRows.length}`}</GroupHeader>}
+            {pendingRows.map((transaction) => (
               <TransactionRow key={transaction.id} transaction={transaction} />
             ))}
-            {rows.length === 0 && (
-              <tr>
-                <td colSpan={6} className="ledger-empty">
-                  {filtered ? (
-                    <>
-                      No transactions match these filters. <Link to={pagePath}>Clear filters</Link>
-                    </>
-                  ) : (
-                    <>
-                      No transactions yet. Connect a bank in <Link to={`/b/${businessId}/connections`}>Connections</Link>.
-                    </>
-                  )}
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+            {grouped && clearedRows.length > 0 && <GroupHeader>Cleared</GroupHeader>}
+            {clearedRows.map((transaction) => (
+              <TransactionRow key={transaction.id} transaction={transaction} />
+            ))}
+          </TableBody>
+        </Table>
+      )}
 
-      <div className="ledger-pagination">
-        <p>
-          Showing {rows.length} {rows.length === 1 ? 'transaction' : 'transactions'}
+      <div className="flex items-center justify-between gap-4 border-t border-border px-4 py-2.5">
+        <p className="text-[13px] text-muted-foreground">
+          Showing {rows.length} {rows.length === 1 ? "transaction" : "transactions"}
         </p>
-        <div className="ledger-pagination-controls">
+        <div className="flex items-center gap-3">
           {isFetchNextPageError && !isFetchingNextPage && (
-            <span className="transactions-load-error" role="alert">
+            <span role="alert" className="text-[13px] text-destructive">
               Couldn't load more transactions.
             </span>
           )}
           {hasNextPage && (
-            <button type="button" disabled={isFetchingNextPage} onClick={() => fetchNextPage()}>
-              {isFetchingNextPage ? 'Loading…' : 'Load more'}
-            </button>
+            <Button variant="outline" disabled={isFetchingNextPage} onClick={() => fetchNextPage()}>
+              {isFetchingNextPage ? "Loading…" : "Load more"}
+            </Button>
           )}
         </div>
       </div>
-    </>
-  )
+    </TableCard>
+  );
+}
+
+function GroupHeader({ children }: { children: string }) {
+  return (
+    <TableRow className="hover:bg-background">
+      <TableCell colSpan={5} className="h-auto bg-background py-1.5 text-xs/4 font-medium text-muted-foreground uppercase">
+        {children}
+      </TableCell>
+    </TableRow>
+  );
 }
 
 function TransactionRow({ transaction }: { transaction: Transaction }) {
   // Plaid's sign: positive is money out of the account, negative is money in.
-  const outflow = !transaction.amount.startsWith('-')
-  const amount = formatMoney(transaction.amount, transaction.currency, { unsigned: true })
+  const outflow = !transaction.amount.startsWith("-");
+  const amount = formatMoney(transaction.amount, transaction.currency, { unsigned: true });
+  const category = formatCategory(transaction.category);
+  const pending = transaction.pending;
 
   return (
-    <tr>
-      <td>
-        <span className="ledger-item transaction-date">{formatDate(parseLocalDate(transaction.date))}</span>
-      </td>
-      <td>
-        <span className="ledger-strong transaction-text">{transaction.merchant_name || transaction.description}</span>
-        {transaction.merchant_name && <span className="ledger-caption transaction-text">{transaction.description}</span>}
-      </td>
-      <td>
-        <span className="ledger-item transaction-text">{formatAccount(transaction.account_name, transaction.account_mask)}</span>
-      </td>
-      <td>
-        <span className="ledger-item transaction-text">{formatCategory(transaction.category)}</span>
-      </td>
-      <td className={`ledger-amount align-right ${outflow ? 'negative' : 'positive'}`}>
-        <span className="visually-hidden">{outflow ? 'Money out' : 'Money in'} </span>
-        {outflow ? '−' : '+'}
+    <TableRow>
+      <TableCell>
+        <span className="flex items-center gap-2">
+          {formatShortDate(parseLocalDate(transaction.date))}
+          {pending && (
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              <ClockIcon className="size-[13px]" aria-hidden="true" />
+              Pending
+            </span>
+          )}
+        </span>
+      </TableCell>
+      <TableCell>
+        <span className="block truncate font-medium">{transaction.merchant_name || transaction.description}</span>
+        {transaction.merchant_name && (
+          <span className="block truncate text-xs text-muted-foreground">{transaction.description}</span>
+        )}
+        {/* Tablet: the Category column is hidden, so the category moves under the vendor. */}
+        <span className="hidden truncate text-xs text-muted-foreground md:max-lg:block">{category}</span>
+      </TableCell>
+      <TableCell className="md:max-lg:hidden">
+        <span className="block truncate">{formatAccount(transaction.account_name, transaction.account_mask)}</span>
+      </TableCell>
+      <TableCell className="md:max-lg:hidden">
+        <span className="block truncate">{category}</span>
+      </TableCell>
+      <TableCell
+        className={cn(
+          "text-right font-medium tabular-nums",
+          pending ? "text-muted-foreground" : outflow ? "text-foreground" : "text-positive",
+        )}
+      >
+        <span className="sr-only">{outflow ? "Money out" : "Money in"} </span>
+        {outflow ? "−" : "+"}
         {amount}
-      </td>
-      <td>{transaction.pending && <StatusBadge tone="warning">Pending</StatusBadge>}</td>
-    </tr>
-  )
+      </TableCell>
+    </TableRow>
+  );
 }
