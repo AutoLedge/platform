@@ -26,7 +26,6 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Kbd } from "@/components/ui/kbd";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { usePanel, useSpecimenOpen } from "./panel-context";
 import { Sheet, Specimen } from "./panel";
 
@@ -93,7 +92,7 @@ function BusinessSwitcherMenu() {
 function AccountMenu() {
   const container = usePanel();
   const menu = useSpecimenOpen();
-  const [theme, setTheme] = useState(["light"]);
+  const [theme, setTheme] = useState("light");
   return (
     <DropdownMenu modal={false} {...menu}>
       <DropdownMenuTrigger render={<Button variant="ghost" className="gap-1.5 px-1.5" aria-label="Account" />}>
@@ -133,20 +132,22 @@ function AccountMenu() {
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
-        <div className="flex items-center justify-between gap-2 px-2 py-1.5">
-          <span className="text-[13px]">Theme</span>
-          <ToggleGroup value={theme} onValueChange={(v) => v.length && setTheme(v)} size="sm" spacing={0} aria-label="Theme">
-            <ToggleGroupItem value="light" aria-label="Light">
-              <SunIcon />
-            </ToggleGroupItem>
-            <ToggleGroupItem value="dark" aria-label="Dark">
-              <MoonIcon />
-            </ToggleGroupItem>
-            <ToggleGroupItem value="system" aria-label="System">
-              <MonitorIcon />
-            </ToggleGroupItem>
-          </ToggleGroup>
-        </div>
+        {/* Same radio group as the app's account menu (N22.3). */}
+        <DropdownMenuRadioGroup value={theme} onValueChange={setTheme}>
+          <DropdownMenuLabel>Theme</DropdownMenuLabel>
+          <DropdownMenuRadioItem value="light" closeOnClick={false}>
+            <SunIcon className="size-4 text-muted-foreground" />
+            Light
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="dark" closeOnClick={false}>
+            <MoonIcon className="size-4 text-muted-foreground" />
+            Dark
+          </DropdownMenuRadioItem>
+          <DropdownMenuRadioItem value="system" closeOnClick={false}>
+            <MonitorIcon className="size-4 text-muted-foreground" />
+            System
+          </DropdownMenuRadioItem>
+        </DropdownMenuRadioGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem variant="destructive">
           <LogOutIcon />

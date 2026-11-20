@@ -4,7 +4,8 @@ import ErrorPage from "@/routes/error-page";
 import Login, { loginAction } from "@/routes/login";
 import Signup, { signupAction } from "@/routes/signup";
 import { logoutAction } from "@/routes/logout";
-import DashboardLayout, { dashboardLoader } from "@/routes/dashboard-layout";
+import DashboardLayout from "@/routes/dashboard-layout";
+import { dashboardLoader, type RouteHandle } from "@/routes/dashboard-loaders";
 import Home from "@/routes/home";
 import { businessLoader, homeLoader } from "@/routes/business-loaders";
 import OnboardingBusiness from "@/routes/onboarding-business";
@@ -49,24 +50,24 @@ export const router = createBrowserRouter([
         loader: dashboardLoader,
         children: [
           // `/` decides where the user goes: their business, a picker, or the choose page.
-          { index: true, Component: Home, loader: homeLoader },
+          { index: true, Component: Home, loader: homeLoader, handle: { title: "Businesses" } satisfies RouteHandle },
 
           // Business onboarding. Reachable with or without a business (it's how a second one is made).
-          { path: "onboarding/business", Component: OnboardingBusiness },
-          { path: "onboarding/accounts", Component: OnboardingAccounts, loader: requireDraftLoader },
-          { path: "onboarding/review", Component: OnboardingReview, loader: requireDraftLoader, action: finishSetupAction },
+          { path: "onboarding/business", Component: OnboardingBusiness, handle: { title: "New business" } satisfies RouteHandle },
+          { path: "onboarding/accounts", Component: OnboardingAccounts, loader: requireDraftLoader, handle: { title: "New business" } satisfies RouteHandle },
+          { path: "onboarding/review", Component: OnboardingReview, loader: requireDraftLoader, action: finishSetupAction, handle: { title: "New business" } satisfies RouteHandle },
 
           // Every business page carries its business in the URL. No top-level aliases.
           {
             path: "b/:businessId",
             loader: businessLoader, // 404 → ErrorPage "Not found"
             children: [
-              { index: true, Component: Overview },
-              { path: "reconciliation", Component: Reconciliation },
-              { path: "transactions", Component: Transactions, loader: transactionsLoader },
-              { path: "invoices", Component: Invoices },
-              { path: "connections", Component: Connections, loader: connectionsLoader, action: connectionsAction },
-              { path: "settings", Component: Settings },
+              { index: true, Component: Overview, handle: { title: "Overview" } satisfies RouteHandle },
+              { path: "reconciliation", Component: Reconciliation, handle: { title: "Reconciliation" } satisfies RouteHandle },
+              { path: "transactions", Component: Transactions, loader: transactionsLoader, handle: { title: "Transactions" } satisfies RouteHandle },
+              { path: "invoices", Component: Invoices, handle: { title: "Invoices" } satisfies RouteHandle },
+              { path: "connections", Component: Connections, loader: connectionsLoader, action: connectionsAction, handle: { title: "Connections" } satisfies RouteHandle },
+              { path: "settings", Component: Settings, handle: { title: "Settings" } satisfies RouteHandle },
             ],
           },
         ],

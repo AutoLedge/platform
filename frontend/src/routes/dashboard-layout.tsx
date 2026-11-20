@@ -1,126 +1,161 @@
-import { Link, NavLink, Outlet, useLoaderData, useNavigate, useParams, useSubmit, type LoaderFunctionArgs } from 'react-router'
-import ProfilePopup from '@/components/ProfilePopup'
-import BusinessSwitcher from '@/components/BusinessSwitcher'
-import DashboardIcon, { type DashboardIconName } from '@/components/DashboardIcon'
-import { sessionContext } from '@/lib/auth'
+import { useState } from "react";
+import { Link, Outlet, useLoaderData, useMatch, useParams, useSubmit } from "react-router";
+import {
+  ArrowLeftRightIcon,
+  CircleCheckIcon,
+  FileTextIcon,
+  LayoutGridIcon,
+  LinkIcon,
+  SlidersHorizontalIcon,
+  type LucideIcon,
+} from "lucide-react";
+import BusinessSwitcher from "@/components/shell/business-switcher";
+import TopBar from "@/components/shell/top-bar";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+} from "@/components/ui/sidebar";
+import { TooltipProvider } from "@/components/ui/tooltip";
+import { useMediaQuery } from "@/hooks/use-media-query";
+import type { dashboardLoader } from "@/routes/dashboard-loaders";
 
-type DashboardUser = {
-  name: string
-  email: string
-}
+type NavRoute = {
+  label: string;
+  path: string; // relative to /b/:businessId ('' = Overview)
+  icon: LucideIcon;
+};
 
-type DashboardRoute = {
-  label: string
-  path: string // relative to /b/:businessId ('' = Overview)
-  icon: DashboardIconName
-}
+// SPEC.md → Sidebar → Nav icons.
+const mainRoutes: NavRoute[] = [
+  { label: "Overview", path: "", icon: LayoutGridIcon },
+  { label: "Reconciliation", path: "reconciliation", icon: CircleCheckIcon },
+  { label: "Transactions", path: "transactions", icon: ArrowLeftRightIcon },
+  { label: "Invoices", path: "invoices", icon: FileTextIcon },
+];
 
-const primaryRoutes: DashboardRoute[] = [
-  { label: 'Overview (Ahmed)', path: '', icon: 'overview' },
-  { label: 'Reconciliation (Ahmed)', path: 'reconciliation', icon: 'reconciliation' },
-  { label: 'Transactions (Sebastian)', path: 'transactions', icon: 'transactions' },
-  { label: 'Invoices (Sebastian)', path: 'invoices', icon: 'invoices' },
-]
-
-const secondaryRoutes: DashboardRoute[] = [
-  { label: 'Connections', path: 'connections', icon: 'connections' },
-  { label: 'Settings', path: 'settings', icon: 'settings' },
-]
-
-export async function dashboardLoader({ context }: LoaderFunctionArgs) {
-  const user = context.get(sessionContext).user
-  const metadata = user.user_metadata
-  const firstName = typeof metadata.first_name === 'string' ? metadata.first_name : ''
-  const lastName = typeof metadata.last_name === 'string' ? metadata.last_name : ''
-  const metadataName = typeof metadata.full_name === 'string' ? metadata.full_name : ''
-  const email = user.email ?? ''
-
-  return {
-    user: {
-      name: `${firstName} ${lastName}`.trim() || metadataName || email || 'AutoLedge User',
-      email,
-    },
-  }
-}
+const setupRoutes: NavRoute[] = [
+  { label: "Connections", path: "connections", icon: LinkIcon },
+  { label: "Settings", path: "settings", icon: SlidersHorizontalIcon },
+];
 
 function businessPath(businessId: string, path: string) {
-  return path ? `/b/${businessId}/${path}` : `/b/${businessId}`
+  return path ? `/b/${businessId}/${path}` : `/b/${businessId}`;
 }
 
-function SidebarLink({ route, businessId }: { route: DashboardRoute; businessId: string | undefined }) {
-  const content = <><DashboardIcon name={route.icon} /><span>{route.label}</span></>
+function NavItem({ route, businessId }: { route: NavRoute; businessId: string | undefined }) {
+  const target = businessId ? businessPath(businessId, route.path) : "/";
+  const match = useMatch({ path: target, end: route.path === "" });
+  const Icon = route.icon;
+  const content = (
+    <>
+      <Icon />
+      <span>{route.label}</span>
+    </>
+  );
 
   // No business in the URL (home, onboarding): Overview leads home, the rest is dimmed and inert,
   // so nothing can link to a business page without a business id.
-  if (!businessId) {
-    if (route.path === '') return <Link className="nav-link active" to="/" aria-current="page">{content}</Link>
-    return <span className="nav-link disabled" aria-disabled="true">{content}</span>
+  if (!businessId && route.path !== "") {
+    return (
+      <SidebarMenuItem>
+        <SidebarMenuButton render={<span />} aria-disabled="true" tooltip={route.label}>
+          {content}
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    );
   }
 
+  const active = Boolean(match);
   return (
-    <NavLink
-      to={businessPath(businessId, route.path)}
-      end={route.path === ''}
-      className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
-    >
-      {content}
-    </NavLink>
-  )
+    <SidebarMenuItem>
+      <SidebarMenuButton
+        render={<Link to={target} aria-current={active ? "page" : undefined} />}
+        isActive={active}
+        tooltip={route.label}
+      >
+        {content}
+      </SidebarMenuButton>
+    </SidebarMenuItem>
+  );
 }
 
-function Sidebar() {
-  const { businessId } = useParams()
-
+function AppSidebar() {
+  const { businessId } = useParams();
   return (
-    <aside className="sidebar">
-      <Link className="brand" to="/" aria-label="AutoLedge home">
-        <span className="brand-mark" aria-hidden="true" />
-        <span>AutoLedge</span>
-      </Link>
-      <nav className="navigation" aria-label="Main navigation">
-        <div className="nav-group">{primaryRoutes.map((route) => <SidebarLink key={route.path} route={route} businessId={businessId} />)}</div>
-        <div className="nav-divider" />
-        <div className="nav-group">{secondaryRoutes.map((route) => <SidebarLink key={route.path} route={route} businessId={businessId} />)}</div>
-      </nav>
-      <div className="sidebar-footer">
+    <Sidebar collapsible="icon">
+      {/* 56px header row; its bottom border lines up with the top bar's. */}
+      <SidebarHeader className="h-14 shrink-0 justify-center border-b border-sidebar-border px-3 py-0">
         <BusinessSwitcher currentId={businessId} />
-      </div>
-    </aside>
-  )
+      </SidebarHeader>
+      <SidebarContent className="gap-0 px-3 py-4">
+        <nav aria-label="Main" className="contents">
+          <SidebarMenu className="gap-0.5">
+            {mainRoutes.map((route) => (
+              <NavItem key={route.label} route={route} businessId={businessId} />
+            ))}
+          </SidebarMenu>
+          <SidebarMenu className="mt-auto gap-0.5" aria-label="Setup">
+            {setupRoutes.map((route) => (
+              <NavItem key={route.label} route={route} businessId={businessId} />
+            ))}
+          </SidebarMenu>
+        </nav>
+      </SidebarContent>
+    </Sidebar>
+  );
 }
 
-// Account actions (profile, preferences, sign out) live here; the sidebar footer is only the business switcher.
-function Topbar({ user, onSignOut }: { user: DashboardUser; onSignOut: () => void }) {
-  const navigate = useNavigate()
-  const { businessId } = useParams()
+// Sidebar choice (expanded or rail) on desktop, remembered across visits. Convenience only.
+const SIDEBAR_KEY = "autoledge-sidebar";
 
-  return (
-    <header className="topbar">
-      <button className="icon-button notification-button" type="button" aria-label="Notifications">
-        <DashboardIcon name="bell" size={21} />
-        <span className="notification-dot" />
-      </button>
-      <ProfilePopup
-        name={user.name}
-        email={user.email}
-        onPreferences={businessId ? () => navigate(businessPath(businessId, 'settings')) : undefined}
-        onSignOut={onSignOut}
-      />
-    </header>
-  )
+function readSidebarOpen() {
+  try {
+    return localStorage.getItem(SIDEBAR_KEY) !== "collapsed";
+  } catch {
+    return true;
+  }
+}
+
+function saveSidebarOpen(open: boolean) {
+  try {
+    localStorage.setItem(SIDEBAR_KEY, open ? "expanded" : "collapsed");
+  } catch {
+    // storage blocked: the choice lasts until reload
+  }
 }
 
 export default function DashboardLayout() {
-  const { user } = useLoaderData<typeof dashboardLoader>()
-  const submit = useSubmit()
+  const { user } = useLoaderData<typeof dashboardLoader>();
+  const submit = useSubmit();
+  // 768–1023: always the icon rail (SPEC.md → Breakpoints). Below 768 shadcn's slide-out panel applies.
+  const isTablet = useMediaQuery("(min-width: 768px) and (max-width: 1023px)");
+  const [desktopOpen, setDesktopOpen] = useState(readSidebarOpen);
 
   return (
-    <div className="app-shell">
-      <Sidebar />
-      <div className="main-column">
-        <Topbar user={user} onSignOut={() => submit(null, { method: 'post', action: '/logout' })} />
-        <Outlet />
-      </div>
-    </div>
-  )
+    <TooltipProvider>
+      <SidebarProvider
+        open={isTablet ? false : desktopOpen}
+        onOpenChange={(open) => {
+          if (isTablet) return;
+          setDesktopOpen(open);
+          saveSidebarOpen(open);
+        }}
+        className="h-svh min-h-0 overflow-hidden"
+      >
+        <AppSidebar />
+        {/* The shell is one viewport tall; only this column scrolls (pages render their own <main>). */}
+        <div className="flex min-w-0 flex-1 flex-col bg-background">
+          <TopBar user={user} onSignOut={() => submit(null, { method: "post", action: "/logout" })} />
+          <div className="relative min-h-0 flex-1 overflow-y-auto">
+            <Outlet />
+          </div>
+        </div>
+      </SidebarProvider>
+    </TooltipProvider>
+  );
 }
