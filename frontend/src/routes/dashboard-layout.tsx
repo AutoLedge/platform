@@ -1,15 +1,8 @@
 import { useState } from "react";
 import { Link, Outlet, useLoaderData, useMatch, useParams, useSubmit } from "react-router";
-import {
-  ArrowLeftRightIcon,
-  CircleCheckIcon,
-  FileTextIcon,
-  LayoutGridIcon,
-  LinkIcon,
-  SlidersHorizontalIcon,
-  type LucideIcon,
-} from "lucide-react";
 import BusinessSwitcher from "@/components/shell/business-switcher";
+import CommandPalette from "@/components/shell/command-palette";
+import { businessPath, mainRoutes, setupRoutes, type NavRoute } from "@/components/shell/nav-routes";
 import TopBar from "@/components/shell/top-bar";
 import {
   Sidebar,
@@ -20,32 +13,10 @@ import {
   SidebarMenuItem,
   SidebarProvider,
 } from "@/components/ui/sidebar";
+import { Toaster } from "@/components/ui/toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useMediaQuery } from "@/hooks/use-media-query";
 import type { dashboardLoader } from "@/routes/dashboard-loaders";
-
-type NavRoute = {
-  label: string;
-  path: string; // relative to /b/:businessId ('' = Overview)
-  icon: LucideIcon;
-};
-
-// SPEC.md → Sidebar → Nav icons.
-const mainRoutes: NavRoute[] = [
-  { label: "Overview", path: "", icon: LayoutGridIcon },
-  { label: "Reconciliation", path: "reconciliation", icon: CircleCheckIcon },
-  { label: "Transactions", path: "transactions", icon: ArrowLeftRightIcon },
-  { label: "Invoices", path: "invoices", icon: FileTextIcon },
-];
-
-const setupRoutes: NavRoute[] = [
-  { label: "Connections", path: "connections", icon: LinkIcon },
-  { label: "Settings", path: "settings", icon: SlidersHorizontalIcon },
-];
-
-function businessPath(businessId: string, path: string) {
-  return path ? `/b/${businessId}/${path}` : `/b/${businessId}`;
-}
 
 function NavItem({ route, businessId }: { route: NavRoute; businessId: string | undefined }) {
   const target = businessId ? businessPath(businessId, route.path) : "/";
@@ -135,9 +106,13 @@ export default function DashboardLayout() {
   // 768–1023: always the icon rail (SPEC.md → Breakpoints). Below 768 shadcn's slide-out panel applies.
   const isTablet = useMediaQuery("(min-width: 768px) and (max-width: 1023px)");
   const [desktopOpen, setDesktopOpen] = useState(readSidebarOpen);
+  const [paletteOpen, setPaletteOpen] = useState(false);
 
   return (
     <TooltipProvider>
+      {/* SPEC.md → Toast: inverse, 6 s. Bottom-right (not SPEC's bottom-left) so it never covers the
+          sidebar's Connections / Settings buttons. Pages add toasts with `toast.add` from ui/toast. */}
+      <Toaster />
       <SidebarProvider
         open={isTablet ? false : desktopOpen}
         onOpenChange={(open) => {
@@ -150,11 +125,16 @@ export default function DashboardLayout() {
         <AppSidebar />
         {/* The shell is one viewport tall; only this column scrolls (pages render their own <main>). */}
         <div className="flex min-w-0 flex-1 flex-col bg-background">
-          <TopBar user={user} onSignOut={() => submit(null, { method: "post", action: "/logout" })} />
+          <TopBar
+            user={user}
+            onOpenSearch={() => setPaletteOpen(true)}
+            onSignOut={() => submit(null, { method: "post", action: "/logout" })}
+          />
           <div className="relative min-h-0 flex-1 overflow-y-auto">
             <Outlet />
           </div>
         </div>
+        <CommandPalette open={paletteOpen} onOpenChange={setPaletteOpen} />
       </SidebarProvider>
     </TooltipProvider>
   );

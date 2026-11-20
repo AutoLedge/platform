@@ -70,7 +70,7 @@ function ToastList() {
   ));
 }
 
-/** A real Base UI toast, held open inside this panel (it is fixed bottom-left in the app). */
+/** A real Base UI toast, held open inside this panel (it is fixed bottom-right in the app). */
 function SampleToast() {
   const [box, setBox] = useState<HTMLDivElement | null>(null);
   const [manager] = useState(() => createToastManager());
@@ -162,7 +162,7 @@ export function FeedbackSheet() {
       <Specimen title="Tooltips" note="Inverse, 12px, after 400ms hover or on focus." height={220}>
         <Tooltips />
       </Specimen>
-      <Specimen title="Toast" note="Bottom-left in the app, 6 seconds, Undo for reversible actions.">
+      <Specimen title="Toast" note="Bottom-right in the app (keeps the sidebar clear), 6 seconds, Undo for reversible actions.">
         <SampleToast />
       </Specimen>
       <Specimen title="Notifications" height={300}>

@@ -6,6 +6,7 @@ import { formatDate, formatDateTime, formatMask, formatMoney } from '@/lib/forma
 import { businessQuery } from '@/queries/businesses'
 import { accountsQuery, plaidItemsQuery } from '@/queries/plaid'
 import PlaidLinkButton from '@/components/PlaidLinkButton'
+import { toast } from '@/components/ui/toast'
 import { StatusBadge } from '@/components/LedgerControls'
 import type { PlaidActionResult, PlaidIntent } from '@/routes/plaid-actions'
 import '@/styles/connections.css'
@@ -96,6 +97,21 @@ function ConnectionCard({ item, isOwner }: { item: PlaidItem; isOwner: boolean }
   const name = institutionName(item)
   const headingId = `connection-${item.id}`
 
+  // A finished refresh is announced as a toast (errors stay inline below). The ref keeps one
+  // result from being announced twice (StrictMode, re-renders).
+  const announced = useRef<PlaidActionResult | undefined>(undefined)
+  useEffect(() => {
+    if (!result?.ok || result.intent !== 'refresh' || announced.current === result) return
+    announced.current = result
+    const upToDate = result.added === 0 && result.modified === 0 && result.removed === 0
+    toast.add({
+      type: 'success',
+      title: upToDate
+        ? `${name} is up to date`
+        : `${name} synced: ${result.added} new, ${result.modified} updated, ${result.removed} removed`,
+    })
+  }, [result, name])
+
   return (
     <article className="ledger-card connection-card" aria-labelledby={headingId}>
       <header className="connection-header">
@@ -132,13 +148,6 @@ function ConnectionCard({ item, isOwner }: { item: PlaidItem; isOwner: boolean }
 
       <AccountsTable accounts={item.accounts} caption={`${name} accounts`} />
 
-      {result?.ok && result.intent === 'refresh' && (
-        <p className="connection-result" role="status">
-          {result.added === 0 && result.modified === 0 && result.removed === 0
-            ? 'Up to date'
-            : `${result.added} new, ${result.modified} updated, ${result.removed} removed`}
-        </p>
-      )}
       {result && !result.ok && (
         <p className="connection-error" role="alert">
           {result.error}

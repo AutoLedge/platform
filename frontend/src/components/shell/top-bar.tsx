@@ -90,14 +90,15 @@ function PageBreadcrumb() {
   );
 }
 
-function GlobalSearchButton() {
-  // The command palette arrives in N22.5; until then the button is visible but disabled.
+function GlobalSearchButton({ onClick }: { onClick: () => void }) {
+  // Opens the command palette (also Ctrl/⌘ K).
   return (
     <Button
       variant="outline"
-      disabled
+      onClick={onClick}
       className="hidden w-[220px] justify-start gap-2 border-border bg-card px-2.5 font-normal text-muted-foreground md:inline-flex"
-      aria-label="Search AutoLedge (coming soon)"
+      aria-label="Search AutoLedge"
+      aria-keyshortcuts="Control+K Meta+K"
     >
       <SearchIcon />
       <span className="flex-1 text-left">Search AutoLedge</span>
@@ -204,13 +205,21 @@ function AccountMenu({ user, onSignOut }: { user: DashboardUser; onSignOut: () =
 }
 
 // SPEC.md → Top bar (56px).
-export default function TopBar({ user, onSignOut }: { user: DashboardUser; onSignOut: () => void }) {
+export default function TopBar({
+  user,
+  onOpenSearch,
+  onSignOut,
+}: {
+  user: DashboardUser;
+  onOpenSearch: () => void;
+  onSignOut: () => void;
+}) {
   return (
     <header className="flex h-14 shrink-0 items-center gap-2 border-b border-border bg-background pr-6 pl-8 max-md:pr-4 max-md:pl-4">
       <SidebarToggle />
       <PageBreadcrumb />
       <span className="flex-1" />
-      <GlobalSearchButton />
+      <GlobalSearchButton onClick={onOpenSearch} />
       <Notifications />
       <AccountMenu user={user} onSignOut={onSignOut} />
     </header>
