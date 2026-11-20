@@ -1,6 +1,6 @@
 import { Form, Link, useActionData, useLoaderData, useNavigation } from 'react-router'
 import { OnboardingAside, OnboardingPage } from '@/components/Onboarding'
-import type { finishSetupAction, requireDraftLoader } from '@/routes/onboarding-loaders'
+import type { finishSetupAction, requireDraftLoader } from '@/routes/onboarding/onboarding-loaders'
 
 // Figma: AutoLedge / Onboarding · Review & finish (62:242).
 // Finish setup is the only onboarding step that calls the API (POST /businesses).

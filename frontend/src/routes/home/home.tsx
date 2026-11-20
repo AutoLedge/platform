@@ -1,6 +1,6 @@
 import { Link, useLoaderData } from 'react-router'
-import type { homeLoader } from '@/routes/business-loaders'
-import ChooseBusiness from '@/routes/choose-business'
+import type { homeLoader } from '@/routes/home/home-loader'
+import ChooseBusiness from '@/routes/home/choose-business'
 
 export default function Home() {
   const { businesses } = useLoaderData<typeof homeLoader>()

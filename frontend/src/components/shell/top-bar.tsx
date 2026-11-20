@@ -34,7 +34,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { shortcutLabel } from "@/lib/platform";
 import { getTheme, setTheme, type Theme } from "@/lib/theme";
-import type { DashboardUser, RouteHandle } from "@/routes/dashboard-loaders";
+import type { DashboardUser, RouteHandle } from "@/routes/shell/dashboard-loaders";
 
 function SidebarToggle() {
   const { state, isMobile, toggleSidebar } = useSidebar();

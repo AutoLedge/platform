@@ -1,17 +1,17 @@
 // The lazily loaded route modules, in one place: the router loads each on demand, and the shell
 // preloads them all when the browser is idle, so the code is never what a navigation waits for.
 export const pageModules = {
-  dashboardLayout: () => import("@/routes/dashboard-layout"),
-  home: () => import("@/routes/home"),
-  onboardingBusiness: () => import("@/routes/onboarding-business"),
-  onboardingAccounts: () => import("@/routes/onboarding-accounts"),
-  onboardingReview: () => import("@/routes/onboarding-review"),
-  overview: () => import("@/routes/overview"),
-  reconciliation: () => import("@/routes/reconciliation"),
-  transactions: () => import("@/routes/transactions"),
-  invoices: () => import("@/routes/invoices"),
-  connections: () => import("@/routes/connections"),
-  settings: () => import("@/routes/settings"),
+  dashboardLayout: () => import("@/routes/shell/dashboard-layout"),
+  home: () => import("@/routes/home/home"),
+  onboardingBusiness: () => import("@/routes/onboarding/onboarding-business"),
+  onboardingAccounts: () => import("@/routes/onboarding/onboarding-accounts"),
+  onboardingReview: () => import("@/routes/onboarding/onboarding-review"),
+  overview: () => import("@/routes/overview/overview"),
+  reconciliation: () => import("@/routes/reconciliation/reconciliation"),
+  transactions: () => import("@/routes/transactions/transactions"),
+  invoices: () => import("@/routes/invoices/invoices"),
+  connections: () => import("@/routes/connections/connections"),
+  settings: () => import("@/routes/settings/settings"),
 };
 
 /** Fetch every page chunk once the browser is idle (after the shell has rendered). */

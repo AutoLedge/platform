@@ -11,13 +11,13 @@ import { Kbd } from "@/components/ui/kbd";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
-import { Sheet, Specimen } from "./dev-components/panel";
-import { MenusSheet } from "./dev-components/menus";
-import { PaletteDialogButton, SearchSheet } from "./dev-components/search";
-import { FiltersSheet } from "./dev-components/filters";
-import { RowActionsSheet } from "./dev-components/row-actions";
-import { FeedbackSheet } from "./dev-components/feedback";
-import { PendingSheet } from "./dev-components/pending";
+import { Sheet, Specimen } from "./panel";
+import { MenusSheet } from "./menus";
+import { PaletteDialogButton, SearchSheet } from "./search";
+import { FiltersSheet } from "./filters";
+import { RowActionsSheet } from "./row-actions";
+import { FeedbackSheet } from "./feedback";
+import { PendingSheet } from "./pending";
 
 function PrimitivesSheet() {
   const [tab, setTab] = useState("all");

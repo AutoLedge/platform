@@ -1,7 +1,7 @@
 import type { ActionFunctionArgs, LoaderFunctionArgs } from "react-router";
 import { queryClient } from "@/lib/query-client";
 import { accountsQuery, plaidItemsQuery } from "@/queries/plaid";
-import { handlePlaidIntent, readPlaidIntent } from "@/routes/plaid-actions";
+import { handlePlaidIntent, readPlaidIntent } from "@/routes/connections/plaid-actions";
 
 // `/b/:businessId/connections`. The business loader above has already checked membership.
 // Render-as-you-fetch: start the queries without awaiting them; the page's Suspense boundaries

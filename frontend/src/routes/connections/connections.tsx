@@ -9,7 +9,7 @@ import PlaidLinkButton from '@/components/PlaidLinkButton'
 import { Skeleton } from '@/components/ui/skeleton'
 import { toast } from '@/components/ui/toast'
 import { StatusBadge } from '@/components/LedgerControls'
-import type { PlaidActionResult, PlaidIntent } from '@/routes/plaid-actions'
+import type { PlaidActionResult, PlaidIntent } from '@/routes/connections/plaid-actions'
 import '@/styles/connections.css'
 
 type PlaidItem = Schemas['PlaidItemResponse']

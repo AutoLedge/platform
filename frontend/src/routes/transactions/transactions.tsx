@@ -11,7 +11,7 @@ import type { Schemas } from "@/lib/api";
 import { formatAccount, formatMoney, formatShortDate, parseLocalDate } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { transactionsQuery, type TransactionFilters } from "@/queries/transactions";
-import type { transactionsLoader } from "@/routes/transactions-loaders";
+import type { transactionsLoader } from "@/routes/transactions/transactions-loaders";
 
 type Transaction = Schemas["TransactionResponse"];
 

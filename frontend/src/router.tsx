@@ -2,15 +2,16 @@ import type { ComponentType } from "react";
 import { createBrowserRouter } from "react-router";
 import { requireAuth, requireGuest } from "./lib/auth";
 import ErrorPage from "@/routes/error-page";
-import Login, { loginAction } from "@/routes/login";
-import Signup, { signupAction } from "@/routes/signup";
-import { logoutAction } from "@/routes/logout";
-import { dashboardLoader, type RouteHandle } from "@/routes/dashboard-loaders";
-import { businessLoader, homeLoader } from "@/routes/business-loaders";
-import { finishSetupAction, requireDraftLoader } from "@/routes/onboarding-loaders";
-import { transactionsLoader } from "@/routes/transactions-loaders";
-import { connectionsAction, connectionsLoader } from "@/routes/connections-loaders";
-import { pageModules } from "@/routes/page-modules";
+import Login, { loginAction } from "@/routes/auth/login";
+import Signup, { signupAction } from "@/routes/auth/signup";
+import { logoutAction } from "@/routes/auth/logout";
+import { dashboardLoader, type RouteHandle } from "@/routes/shell/dashboard-loaders";
+import { businessLoader } from "@/routes/business-loader";
+import { homeLoader } from "@/routes/home/home-loader";
+import { finishSetupAction, requireDraftLoader } from "@/routes/onboarding/onboarding-loaders";
+import { transactionsLoader } from "@/routes/transactions/transactions-loaders";
+import { connectionsAction, connectionsLoader } from "@/routes/connections/connections-loaders";
+import { pageModules } from "@/routes/shell/page-modules";
 
 /**
  * Code-splitting: the shell and every page component load on demand, so the sign-in pages don't
@@ -41,7 +42,7 @@ export const router = createBrowserRouter([
 
       // ── Development only: styled shadcn components with sample content. Stripped from production builds. ──
       ...(import.meta.env.DEV
-        ? [{ path: "/dev/components", lazy: lazyComponent(() => import("@/routes/dev-components")) }]
+        ? [{ path: "/dev/components", lazy: lazyComponent(() => import("@/routes/dev-components/dev-components")) }]
         : []),
 
       // ── Protected ──

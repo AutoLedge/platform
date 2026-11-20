@@ -16,8 +16,8 @@ import {
 import { Toaster } from "@/components/ui/toast";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { useMediaQuery } from "@/hooks/use-media-query";
-import type { dashboardLoader } from "@/routes/dashboard-loaders";
-import { preloadPagesWhenIdle } from "@/routes/page-modules";
+import type { dashboardLoader } from "@/routes/shell/dashboard-loaders";
+import { preloadPagesWhenIdle } from "@/routes/shell/page-modules";
 
 const CommandPalette = lazy(loadCommandPalette);
 
