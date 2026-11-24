@@ -72,8 +72,6 @@
 }
 
 /* Header account selector */
-.ledger-account-select { width: 278px; height: 47px; flex-shrink: 0; }
-.ledger-account-select select { padding-left: 14px; border-color: rgba(92, 92, 92, 0.39); }
 
 /* ── Filters ── */
 
@@ -234,7 +232,6 @@
 
 @media (max-width: 800px) {
   .ledger-header { flex-direction: column; align-items: stretch; gap: 14px; }
-  .ledger-account-select { width: 100%; }
   .ledger-header-action { align-self: flex-start; }
 }
 
